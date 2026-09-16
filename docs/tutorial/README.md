@@ -1,6 +1,6 @@
 # Procedural World Building tutorials
 
-This series turns the Class 02 material into a working technical path for a browser-based procedural world. The examples use React, Three.js through React Three Fiber, Drei helpers, Leva controls, and optional Firebase persistence.
+This series provides a practical technical path for building a browser-based procedural world. The examples use React, Three.js through React Three Fiber, Drei helpers, Leva controls, and optional Firebase persistence.
 
 ## Learning path
 

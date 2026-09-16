@@ -189,7 +189,7 @@ An algorithm change can alter every saved world even if its seed stays the same.
 ```js
 const worldConfig = {
   generatorVersion: 1,
-  seed: 'class-02-demo',
+  seed: 'archipelago-demo',
   terrain: {
     size: 24,
     resolution: 128,

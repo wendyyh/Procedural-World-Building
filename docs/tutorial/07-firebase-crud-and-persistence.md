@@ -75,7 +75,7 @@ const worldDocument = {
   name: 'Mountain study',
   ownerId: 'firebase-user-id',
   generatorVersion: 1,
-  seed: 'class-02',
+  seed: 'archipelago-01',
   terrain: {
     size: 24,
     resolution: 128,

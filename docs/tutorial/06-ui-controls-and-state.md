@@ -14,7 +14,7 @@ import { useControls } from 'leva'
 
 export function useWorldControls() {
   return useControls('World', {
-    seed: 'class-02',
+    seed: 'archipelago-01',
     frequency: { value: 0.08, min: 0.01, max: 0.25, step: 0.005 },
     amplitude: { value: 4, min: 0, max: 10, step: 0.1 },
     octaves: { value: 5, min: 1, max: 8, step: 1 },
