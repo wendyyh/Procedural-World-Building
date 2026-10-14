@@ -1,6 +1,6 @@
 # Procedural World Building tutorials
 
-This series provides a practical technical path for building a browser-based procedural world. The examples use React, Three.js through React Three Fiber, Drei helpers, Leva controls, and optional Firebase persistence.
+This series provides a practical technical path for building a browser-based procedural world. The live portfolio uses React, Three.js through React Three Fiber, Drei helpers, custom React controls, and a Firebase-ready persistence layer. Standalone examples explain individual ideas; the [project notebook](../README.md) points to the current implementation.
 
 ## Learning path
 
@@ -22,29 +22,31 @@ This series provides a practical technical path for building a browser-based pro
 - A current Node.js installation compatible with Vite
 - A WebGL-capable browser
 
-## Suggested project structure
+## Current project structure
 
 ```text
 src/
-  app/
-    App.jsx
+  App.jsx
+  PortfolioPages.jsx
   features/
-    world/
-      WorldCanvas.jsx
-      Terrain.jsx
-      WorldControls.jsx
+    terrain/
+      TerrainMesh.jsx
+      TerrainWorld.jsx
       generation/
-        createHeightField.js
-      materials/
-        TerrainShaderMaterial.jsx
+    voxel/
+      VoxelStudy.jsx
+      generation/
+    shaders/
+      ShaderLab.jsx
+    presets/
   lib/
     firebase.js
   main.jsx
 ```
 
-The separation is intentional: generation functions should remain usable without React or rendering, scene components should describe the 3D world, and persistence should live behind a small data API.
+The separation is intentional: generation functions remain usable without React or rendering, scene components describe the visible studies, and persistence lives behind a small data API.
 
-## Final integration exercise
+## Integration ideas
 
 Build a page that:
 
@@ -58,4 +60,4 @@ Save parameters rather than mesh vertices. A parameter set is smaller, easier to
 
 ## Source policy
 
-These tutorials use code and Mermaid diagrams instead of decorative screenshots. Links at the end of each tutorial point to official documentation or the project maintained by the library authors.
+These tutorials use code and Mermaid diagrams for concepts. The [study notes](../README.md#interactive-studies) contain screenshots captured from the actual application. Links at the end of each tutorial point to official documentation or the project maintained by the library authors.

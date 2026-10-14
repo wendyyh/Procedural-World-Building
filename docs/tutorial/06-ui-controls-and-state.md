@@ -1,13 +1,15 @@
 # UI controls and scene state
 
-The deck shows a 3D form controlled by sliders. In this project, controls have two roles:
+In a procedural 3D application, controls have two roles:
 
 - development controls help tune parameters quickly;
 - application controls become part of the final interface and must be accessible, persistent, and intentional.
 
-Leva works well for development panels. Build normal React UI for the final user experience.
+The live portfolio uses custom React controls in [TerrainControls](../../src/features/terrain/TerrainControls.jsx), [VoxelStudy](../../src/features/voxel/VoxelStudy.jsx), and [Shader Lab](../../src/features/shaders/ShaderLab.jsx). Leva below is an optional prototyping alternative; it is **not installed** in this repository. Install it separately before running those examples.
 
-## Add a Leva panel
+## Optional Leva prototype
+
+In a separate practice project, install it with `npm install leva` before using the following snippets.
 
 ```jsx
 import { useControls } from 'leva'
@@ -163,7 +165,7 @@ If the overlay should not block orbit controls except over its controls, avoid p
 
 Hide or remove development controls in the production experience if they expose unstable or expensive settings.
 
-## Exercise
+## Try it
 
 Build a control panel with:
 

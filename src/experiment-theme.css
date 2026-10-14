@@ -1,0 +1,205 @@
+/* The study controls share the portfolio's daylight palette. The 3D scenes keep
+   their own dark backgrounds so geometry, particles, and shader effects read well. */
+.app-shell {
+  --ui-ink: #263d32;
+  --ui-muted: #63786a;
+  --ui-soft: #789080;
+  --ui-accent: #367457;
+  --ui-border: #dce5da;
+  color: var(--ui-ink);
+  background: #f8f7f2;
+  color-scheme: light;
+}
+
+.app-shell .eyebrow,
+.app-shell .panel-kicker { color: #58715f; }
+.app-shell .masthead h1 { color: #203b30; }
+.app-shell .intro { color: var(--ui-muted); }
+
+.app-shell .canvas-panel {
+  border-color: #d4ded5;
+  color: #e8edf5;
+  background: #0b1419;
+  box-shadow: 0 20px 55px rgba(52, 80, 58, .13);
+}
+.app-shell .control-panel,
+.app-shell .worldline-panel {
+  border-color: var(--ui-border);
+  color: var(--ui-ink);
+  background: #fffefa;
+  box-shadow: 0 16px 48px rgba(57, 91, 66, .08);
+}
+.app-shell .control-panel h2 { color: #5b7463; }
+.app-shell .map-panel,
+.app-shell .control-section,
+.app-shell .shader-explanation,
+.app-shell .shader-tuning,
+.app-shell .shader-footnote { border-color: var(--ui-border); }
+.app-shell .map-panel .section-heading h2,
+.app-shell .preset-panel .section-heading h2,
+.app-shell .shader-strategy-section h2,
+.app-shell .shader-explanation h2,
+.app-shell .worldline-decision h2,
+.app-shell .worldline-ending h2 { color: var(--ui-ink); }
+.app-shell .live-indicator { color: var(--ui-accent); }
+.app-shell .live-indicator::before { background: #6eaa7b; box-shadow: none; }
+
+.app-shell .terrain-readout {
+  border-left-color: #6aa783;
+  color: var(--ui-ink);
+  background: rgba(253, 254, 248, .92);
+  box-shadow: 0 8px 25px rgba(15, 33, 25, .12);
+}
+.app-shell .voxel-readout { border-left-color: #6f9fb0; }
+.app-shell .terrain-readout > span:last-child,
+.app-shell .readout-label { color: #61796b; }
+
+.app-shell .map-stats { border-color: var(--ui-border); background: #f6f8f3; }
+.app-shell .map-stats span { color: var(--ui-ink); }
+.app-shell .map-stats span + span { border-left-color: var(--ui-border); }
+.app-shell .map-stats small { color: #738a79; }
+.app-shell .control-note,
+.app-shell .toggle-row small { color: var(--ui-muted); }
+.app-shell .control-note a { color: var(--ui-accent); }
+.app-shell .field-control > span,
+.app-shell .range-control > span,
+.app-shell .toggle-row strong { color: #405b49; }
+.app-shell .range-control output { color: #5c7765; }
+.app-shell .field-control input,
+.app-shell .field-control select,
+.app-shell .field-control textarea,
+.app-shell .preset-form-row input {
+  border-color: #d4e0d4;
+  color: var(--ui-ink);
+  background: #fafcf7;
+}
+.app-shell .field-control input::placeholder,
+.app-shell .field-control textarea::placeholder,
+.app-shell .preset-form-row input::placeholder { color: #809286; }
+.app-shell .range-control input[type='range'],
+.app-shell .toggle-row input,
+.app-shell .shader-slider input,
+.app-shell .shader-motion-toggle input { accent-color: #4d8b69; }
+.app-shell .text-button { color: var(--ui-accent); }
+.app-shell .text-button:hover { color: #214f39; }
+.app-shell .text-button:disabled { color: #9aa99d; }
+.app-shell .reset-button {
+  border-color: #d4e0d4;
+  color: #4c6a56;
+  background: #f5f8f2;
+}
+.app-shell .reset-button:hover { border-color: #97baa1; color: #285a3f; background: #eaf2e9; }
+
+.app-shell .environment-layer,
+.app-shell .modifier-card,
+.app-shell .preset-panel {
+  border-color: #d5e4d4;
+  background: #f4f8f1;
+}
+.app-shell .environment-actions button,
+.app-shell .preset-primary,
+.app-shell .preset-list button,
+.app-shell .path-code-form button,
+.app-shell .worldline-ending button {
+  border-color: #adcfb5;
+  color: #285f43;
+  background: #e5f1e5;
+}
+.app-shell .environment-actions button:hover,
+.app-shell .preset-primary:hover,
+.app-shell .preset-list button:hover,
+.app-shell .path-code-form button:hover,
+.app-shell .worldline-ending button:hover { background: #d5e8d8; }
+.app-shell .cloud-indicator { border-color: #d7e2d6; color: #667c6d; }
+.app-shell .cloud-indicator.is-ready { border-color: #a5caad; color: var(--ui-accent); }
+.app-shell .preset-empty,
+.app-shell .preset-message { color: #56725d; }
+.app-shell .preset-empty code { color: #285f43; }
+.app-shell .preset-error,
+.app-shell .path-error { color: #a13f3b; }
+.app-shell .preset-account { border-color: var(--ui-border); color: var(--ui-ink); }
+.app-shell .preset-list-heading { color: #46614f; }
+.app-shell .preset-list-heading span,
+.app-shell .preset-list small { color: #748a78; }
+.app-shell .preset-list li { border-color: var(--ui-border); background: #fffefa; }
+.app-shell .preset-list strong { color: var(--ui-ink); }
+
+.app-shell .branch-stats span { border-color: var(--ui-border); color: #688073; background: #f6f8f3; }
+.app-shell .branch-stats strong { color: #315e44; }
+.app-shell .grammar-detail { border-color: var(--ui-border); color: var(--ui-muted); background: #fbfcf8; }
+.app-shell .grammar-detail summary { color: #376d51; }
+.app-shell .grammar-detail code { color: #286b50; }
+.app-shell .modifier-actions button { border-color: #d1ddd1; color: #456651; background: #fffefa; }
+.app-shell .modifier-actions button:hover { background: #e9f2e8; }
+.app-shell .modifier-actions button:disabled { color: #a1afa2; }
+
+.app-shell .shader-strategy { border-color: var(--ui-border); color: #526d5b; background: #f8faf5; }
+.app-shell .shader-strategy:hover,
+.app-shell .shader-strategy[aria-pressed='true'] { border-color: #9bbfa4; color: #275a3f; background: #e7f1e6; }
+.app-shell .shader-strategy > span,
+.app-shell .shader-strategy small { color: #6d8877; }
+.app-shell .shader-explanation p:not(.panel-kicker),
+.app-shell .shader-footnote,
+.app-shell .shader-slider,
+.app-shell .shader-motion-toggle { color: var(--ui-muted); }
+.app-shell .shader-explanation .shader-mechanism { color: #66806e !important; }
+.app-shell .shader-slider output { color: var(--ui-accent); }
+
+.app-shell .worldline-panel { background: #fbfcf8; }
+.app-shell .worldline-heading,
+.app-shell .worldline-footer,
+.app-shell .worldline-premise span { color: #6b8475; }
+.app-shell .worldline-premise strong { color: var(--ui-ink); }
+.app-shell .worldline-mobile-hint { color: #5f816b; }
+.app-shell .worldline-footer { border-top-color: var(--ui-border); }
+.app-shell .worldline-footer strong { color: #2c6949; }
+.app-shell .worldline-columns line { stroke: #dce6dc; }
+.app-shell .worldline-columns text,
+.app-shell .graph-caption { fill: #6a8272; }
+.app-shell .worldline-edges path { stroke: #b5c6b8; }
+.app-shell .worldline-edges path.active { stroke: #3d8a65; }
+.app-shell .worldline-edges path.active.branch-1 { stroke: #ae7752; }
+.app-shell .worldline-nodes g circle { fill: #76a78b; stroke: #44775b; }
+.app-shell .worldline-nodes g circle.branch-one { fill: #b79270; stroke: #875d3d; }
+.app-shell .worldline-nodes g.on-path circle,
+.app-shell .worldline-nodes g.selected circle { fill: #367c58; stroke: #286044; }
+.app-shell .worldline-nodes g.selected circle.branch-one { fill: #a56540; stroke: #814527; }
+.app-shell .worldline-nodes g .node-ring { stroke: #5e9b70 !important; }
+.app-shell .worldline-axis > div:first-child { color: #506c5b; }
+.app-shell .worldline-axis output { color: #365c43; }
+.app-shell .worldline-track { background: #e5ece3; }
+.app-shell .worldline-decision > p:not(.panel-kicker),
+.app-shell .worldline-ending > p:not(.panel-kicker) { color: var(--ui-muted); }
+.app-shell .worldline-choices button { border-color: #c8dfcc; color: var(--ui-ink); background: #f1f7ef; }
+.app-shell .worldline-choices button + button { border-color: #e4d6c7; background: #faf5ee; }
+.app-shell .worldline-choices button:hover { border-color: #7fb58e; }
+.app-shell .worldline-choices button + button:hover { border-color: #c59b71; }
+.app-shell .worldline-choices button span { color: #357755; }
+.app-shell .worldline-choices button + button span { color: #9d6a41; }
+.app-shell .worldline-choices button small,
+.app-shell .worldline-history li { color: var(--ui-muted); }
+.app-shell .worldline-history li span { color: #668b73; }
+.app-shell .worldline-history li strong { color: var(--ui-ink); }
+
+.site-nav a:focus-visible,
+.experiment-nav a:focus-visible,
+.app-shell a:focus-visible,
+.app-shell button:focus-visible,
+.app-shell input:focus-visible,
+.app-shell select:focus-visible,
+.app-shell textarea:focus-visible { outline-color: #367457; }
+
+@media (max-width: 580px) {
+  .experiment-nav {
+    align-items: center;
+    flex-direction: row;
+  }
+  .experiment-nav > div {
+    display: flex;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .experiment-nav a { flex: 0 0 auto; }
+}

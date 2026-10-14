@@ -13,7 +13,15 @@ function lerp(start, end, amount) {
   return start + (end - start) * amount
 }
 
-export function heightToRgb(value, waterLevel) {
+function mixColor(start, end, amount) {
+  return [
+    Math.round(lerp(start[0], end[0], amount)),
+    Math.round(lerp(start[1], end[1], amount)),
+    Math.round(lerp(start[2], end[2], amount)),
+  ]
+}
+
+function topographicColor(value, waterLevel) {
   const adjustedStops = STOPS.map((stop, index) => {
     if (index === 1) return { ...stop, value: Math.max(0.08, waterLevel - 0.03) }
     if (index === 2) return { ...stop, value: waterLevel }
@@ -35,9 +43,36 @@ export function heightToRgb(value, waterLevel) {
   const range = Math.max(0.0001, upper.value - lower.value)
   const amount = Math.min(1, Math.max(0, (value - lower.value) / range))
 
-  return [
-    Math.round(lerp(lower.color[0], upper.color[0], amount)),
-    Math.round(lerp(lower.color[1], upper.color[1], amount)),
-    Math.round(lerp(lower.color[2], upper.color[2], amount)),
-  ]
+  return mixColor(lower.color, upper.color, amount)
+}
+
+export function heightToRgb(
+  value,
+  waterLevel,
+  {
+    surfaceMode = 'topographic',
+    slope = 0,
+    contours = false,
+    contourInterval = 0.08,
+  } = {},
+) {
+  let color
+
+  if (surfaceMode === 'elevation') {
+    color = mixColor([9, 20, 31], [232, 238, 226], value)
+  } else if (surfaceMode === 'slope') {
+    const steepness = Math.min(1, Math.max(0, slope))
+    color = mixColor([55, 116, 91], [213, 208, 191], steepness)
+  } else {
+    color = topographicColor(value, waterLevel)
+  }
+
+  if (contours) {
+    const phase = (value / Math.max(0.015, contourInterval)) % 1
+    const distanceToLine = Math.min(phase, 1 - phase)
+    const lineStrength = Math.max(0, 1 - distanceToLine / 0.1) * 0.52
+    color = mixColor(color, [5, 12, 18], lineStrength)
+  }
+
+  return color
 }

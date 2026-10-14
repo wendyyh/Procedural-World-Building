@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/presets/{presetId} {
+      function owner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function validNewPreset() {
+        let data = request.resource.data;
+        return data.keys().hasAll([
+          'name', 'kind', 'schemaVersion', 'config', 'view', 'createdAt', 'updatedAt'
+        ])
+          && data.keys().hasOnly([
+            'name', 'kind', 'schemaVersion', 'config', 'view', 'createdAt', 'updatedAt'
+          ])
+          && data.name is string
+          && data.name.size() > 0
+          && data.name.size() <= 60
+          && data.kind in ['terrain', 'voxel']
+          && data.schemaVersion == 1
+          && data.config is map
+          && data.view is map
+          && data.createdAt == request.time
+          && data.updatedAt == request.time;
+      }
+
+      allow get, list: if owner();
+      allow create: if owner() && validNewPreset();
+      allow update, delete: if false;
+    }
+  }
+}

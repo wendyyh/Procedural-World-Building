@@ -183,7 +183,7 @@ Raw Three.js remains useful for:
 
 React Three Fiber does not replace Three.js. It manages Three.js objects within React's lifecycle.
 
-## Exercise
+## Try it
 
 Refactor the scene from the previous tutorial into:
 

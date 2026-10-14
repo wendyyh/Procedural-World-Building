@@ -1,5 +1,7 @@
 # Firebase CRUD and world persistence
 
+> **Current portfolio implementation:** Terrain Field and Voxel World now have a Firebase-backed save/load panel. It stores validated configuration snapshots at `users/{uid}/presets/{presetId}` and deliberately does not expose update or delete. See [Cloud configuration library](../planning/firebase-save-load.md) for the exact schema, setup, rules, index, and verification status. The broader CRUD examples below are conceptual extensions, not code currently used by the app.
+
 Firebase is a backend-as-a-service platform. For this project, Cloud Firestore can store world configuration documents while Firebase Authentication identifies their owners.
 
 ```mermaid
@@ -261,9 +263,9 @@ Disable duplicate submissions while saving and display errors in the interface. 
 - Use the emulator for development and automated rules tests.
 - Firestore offline behavior can make the UI appear updated before the server accepts a write; expose meaningful sync state when it matters.
 
-## Exercise
+## Further development
 
-Add a world library screen that can create, list, load, rename, and delete the current user's worlds. Confirm that one authenticated user cannot read or change another user's document.
+A future version could add rename and delete to the personal library, with matching owner-only rules and clear confirmation for deletion. Test that one authenticated user cannot read or change another user's document before releasing those operations.
 
 ## Official references
 

@@ -140,7 +140,7 @@ function Terrain({ seed, resolution, frequency }) {
 | Saved world from Firestore | State or query cache | Arrives asynchronously and affects UI |
 | Constant biome thresholds | Module constant | Does not vary by component instance |
 
-## Exercise
+## Try it
 
 Create a `WorldPreview` component with:
 

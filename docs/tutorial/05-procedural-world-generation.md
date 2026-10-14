@@ -211,7 +211,7 @@ When you release a new generator, either migrate old configurations or preserve 
 - Use level of detail for distant terrain.
 - Save parameters, not generated vertex arrays, unless exact baked geometry is a requirement.
 
-## Exercise
+## Try it
 
 Generate an island with two additional controls:
 

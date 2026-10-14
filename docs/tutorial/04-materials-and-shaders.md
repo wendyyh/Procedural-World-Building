@@ -32,7 +32,7 @@ function MaterialExamples() {
 - Phong material adds classic specular highlights.
 - Standard material uses a physically based roughness/metalness workflow.
 
-For terrain, start with `MeshStandardMaterial`. Move to a custom shader only when a built-in material cannot express the visual rule you need.
+For terrain, start with `MeshStandardMaterial`. Move to a custom shader only when a built-in material cannot express the visual rule you need. The portfolio's current [TerrainMesh](../../src/features/terrain/TerrainMesh.jsx) uses a custom shader for analytical surface views; [Shader Lab](../studies/shader-lab.md) compares additional strategies.
 
 ## The programmable pipeline
 
@@ -50,7 +50,7 @@ The vertex shader runs for vertices and writes clip-space positions. The fragmen
 
 ## An animated shader material
 
-Create `src/features/world/materials/TerrainShaderMaterial.jsx`:
+The following is a standalone teaching example, not a file that already exists in this repository. Create `src/features/world/materials/TerrainShaderMaterial.jsx` in a fresh practice project:
 
 ```jsx
 import { forwardRef } from 'react'
@@ -174,7 +174,7 @@ Use `smoothstep` around thresholds to prevent hard color bands.
 - Keep the number of material variants under control; each variant may require another GPU program.
 - Prefer uniforms for live controls.
 
-## Exercise
+## Try it
 
 Extend the terrain shader with:
 

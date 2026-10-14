@@ -1,4 +1,5 @@
 import { createNoise2D } from 'simplex-noise'
+import { simulateThermalErosion } from './simulateThermalErosion.js'
 
 function clamp01(value) {
   return Math.min(1, Math.max(0, value))
@@ -75,10 +76,63 @@ export function createNoiseField({
   lacunarity,
   shaping,
   shapeAmount,
+  worldMode = 'bounded',
+  originX = 0,
+  originY = 0,
+  erosionEnabled = false,
+  erosionIterations = 0,
+  erosionTalus = 0.025,
+  erosionStrength = 0.24,
 }) {
   const random = mulberry32(hashSeed(seed))
   const noise2D = createNoise2D(random)
   const side = resolution + 1
+  const padding = worldMode === 'streaming' && erosionEnabled
+    ? Math.max(0, Math.round(erosionIterations) + 2)
+    : 0
+  const paddedSide = side + padding * 2
+  const sourceValues = new Float32Array(paddedSide * paddedSide)
+  const effectiveShaping = worldMode === 'streaming' && shaping === 'island'
+    ? 'linear'
+    : shaping
+
+  for (let row = 0; row < paddedSide; row += 1) {
+    for (let column = 0; column < paddedSide; column += 1) {
+      const index = row * paddedSide + column
+      const localX = ((column - padding) / resolution - 0.5) * 2
+      const localY = ((row - padding) / resolution - 0.5) * 2
+      const worldX = localX + originX * 2
+      const worldY = localY + originY * 2
+      const rawValue = sampleFbm(
+        noise2D,
+        worldX / frequency,
+        worldY / frequency,
+        octaves,
+        persistence,
+        lacunarity,
+      )
+      const normalizedValue = clamp01(rawValue * 0.5 + 0.5)
+
+      sourceValues[index] = clamp01(
+        shapeNoise(
+          rawValue,
+          normalizedValue,
+          effectiveShaping,
+          shapeAmount,
+          localX,
+          localY,
+        ),
+      )
+    }
+  }
+
+  const erosion = erosionEnabled
+    ? simulateThermalErosion(sourceValues, paddedSide, {
+      iterations: erosionIterations,
+      talus: erosionTalus,
+      strength: erosionStrength,
+    })
+    : { values: sourceValues, totalMoved: 0 }
   const values = new Float32Array(side * side)
   let minimum = 1
   let maximum = 0
@@ -87,20 +141,8 @@ export function createNoiseField({
   for (let row = 0; row < side; row += 1) {
     for (let column = 0; column < side; column += 1) {
       const index = row * side + column
-      const gridX = (column / resolution - 0.5) * 2
-      const gridY = (row / resolution - 0.5) * 2
-      const rawValue = sampleFbm(
-        noise2D,
-        gridX / frequency,
-        gridY / frequency,
-        octaves,
-        persistence,
-        lacunarity,
-      )
-      const normalizedValue = clamp01(rawValue * 0.5 + 0.5)
-      const value = clamp01(
-        shapeNoise(rawValue, normalizedValue, shaping, shapeAmount, gridX, gridY),
-      )
+      const paddedIndex = (row + padding) * paddedSide + column + padding
+      const value = erosion.values[paddedIndex]
 
       values[index] = value
       minimum = Math.min(minimum, value)
@@ -116,5 +158,13 @@ export function createNoiseField({
     minimum,
     maximum,
     mean: total / values.length,
+    originX,
+    originY,
+    erosion: {
+      enabled: erosionEnabled,
+      iterations: erosionEnabled ? erosionIterations : 0,
+      totalMoved: erosion.totalMoved,
+      meanMoved: erosion.totalMoved / erosion.values.length,
+    },
   }
 }

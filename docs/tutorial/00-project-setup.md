@@ -43,7 +43,7 @@ npm run preview  # serve the production build locally
 
 ```bash
 npm install three @react-three/fiber @react-three/drei
-npm install leva simplex-noise firebase
+npm install simplex-noise firebase
 ```
 
 | Package | Responsibility |
@@ -51,13 +51,12 @@ npm install leva simplex-noise firebase
 | `three` | Geometry, cameras, lights, materials, textures, and WebGL rendering |
 | `@react-three/fiber` | React renderer for Three.js |
 | `@react-three/drei` | Useful scene helpers such as `OrbitControls` and `Grid` |
-| `leva` | Live sliders, color pickers, toggles, and debug controls |
 | `simplex-noise` | Coherent noise for terrain generation |
 | `firebase` | Optional remote persistence and authentication |
 
 ## 4. Replace the starter screen
 
-Create `src/app/App.jsx`:
+For this standalone starter example, create `src/app/App.jsx`. The current portfolio keeps its application component at `src/App.jsx`:
 
 ```jsx
 import { Canvas } from '@react-three/fiber'

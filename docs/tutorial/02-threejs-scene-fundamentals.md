@@ -169,7 +169,7 @@ For an editor, orbit controls are a good default. A walking experience usually n
 - Avoid enabling shadows on every light and object.
 - Change terrain resolution deliberately; doubling both grid dimensions creates about four times as many vertices.
 
-## Exercise
+## Try it
 
 Create a scene that contains a sphere, box, and terrain plane. Add:
 
