@@ -1,5 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import { BufferAttribute, BufferGeometry, Color, PCFShadowMap } from 'three'
 import { BoxInstances, TubeInstances } from './AfterUsScene.jsx'
 import { ArchitectureSurfaces, DebrisInstances } from './ArchitectureSurfaces.jsx'
@@ -72,13 +73,45 @@ function SliceTerrain({ data, animation }) {
   </>
 }
 
-function PreviewCamera() {
-  const { camera, size, invalidate } = useThree()
+function PreviewCamera({ reducedMotion }) {
+  const controls = useRef()
+  const { camera, size, gl, invalidate } = useThree()
   useLayoutEffect(() => {
     camera.lookAt(0, 1.4, 0); camera.zoom = Math.min(size.width / 32, size.height / 30)
     camera.updateProjectionMatrix(); invalidate()
   }, [camera, size.width, size.height, invalidate])
-  return null
+  useEffect(() => {
+    const canvas = gl.domElement
+    canvas.tabIndex = 0
+    canvas.setAttribute('role', 'img')
+    canvas.setAttribute('aria-label', 'Interactive After Us neighborhood. Drag or use arrow keys to rotate. Double-click or press Home to reset the view.')
+    const reset = () => {
+      controls.current?.setAzimuthalAngle(Math.atan2(27, 30))
+      controls.current?.setPolarAngle(Math.acos(22.6 / Math.hypot(27, 22.6, 30)))
+    }
+    const keydown = (event) => {
+      const orbit = controls.current
+      if (!orbit || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return
+      event.preventDefault()
+      delete canvas.dataset.pointerFocus
+      if (event.key === 'Home') reset()
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() + (event.key === 'ArrowLeft' ? 0.12 : -0.12))
+      else orbit.setPolarAngle(Math.max(orbit.minPolarAngle, Math.min(orbit.maxPolarAngle, orbit.getPolarAngle() + (event.key === 'ArrowUp' ? -0.08 : 0.08))))
+    }
+    const focus = () => { canvas.dataset.pointerFocus = 'true'; canvas.focus({ preventScroll: true }) }
+    const blur = () => { delete canvas.dataset.pointerFocus }
+    canvas.addEventListener('keydown', keydown)
+    canvas.addEventListener('dblclick', reset)
+    canvas.addEventListener('pointerdown', focus)
+    canvas.addEventListener('blur', blur)
+    return () => {
+      canvas.removeEventListener('keydown', keydown)
+      canvas.removeEventListener('dblclick', reset)
+      canvas.removeEventListener('pointerdown', focus)
+      canvas.removeEventListener('blur', blur)
+    }
+  }, [gl])
+  return <OrbitControls ref={controls} target={[0, 1.4, 0]} enablePan={false} enableZoom={false} enableDamping={!reducedMotion} dampingFactor={0.08} rotateSpeed={0.65} minPolarAngle={0.65} maxPolarAngle={1.2} />
 }
 
 function Evolution({ data, animation, fadeRef, active, reducedMotion }) {
@@ -107,7 +140,7 @@ const CutoutScene = memo(function CutoutScene({ active, reducedMotion, fadeRef }
   const data = useMemo(getData, [])
   const animation = useRef(null)
   if (!animation.current) animation.current = { snapshot: createPreviewSnapshot(data), tick: 0 }
-  return <Canvas orthographic frameloop="demand" shadows={SHADOWS} dpr={[1, 1.5]} camera={CAMERA} gl={{ antialias: true, alpha: true }} style={{ pointerEvents: 'none' }} aria-hidden="true" tabIndex={-1}>
+  return <Canvas orthographic frameloop="demand" shadows={SHADOWS} dpr={[1, 1.5]} camera={CAMERA} gl={{ antialias: true, alpha: true }}>
     <ambientLight intensity={0.75} color="#e9e0e0" />
     <hemisphereLight args={['#f4e8d8', '#88977a', 1.15]} />
     <directionalLight position={[-12, 30, 20]} intensity={2.2} color="#ffe6c9" castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-23} shadow-camera-right={23} shadow-camera-top={23} shadow-camera-bottom={-23} shadow-camera-far={90} shadow-normalBias={0.025} shadow-bias={-0.0001} shadow-radius={4} />
@@ -133,7 +166,7 @@ const CutoutScene = memo(function CutoutScene({ active, reducedMotion, fadeRef }
         }
       `} />
     </mesh>
-    <PreviewCamera />
+    <PreviewCamera reducedMotion={reducedMotion} />
     <Evolution data={data} animation={animation} fadeRef={fadeRef} active={active} reducedMotion={reducedMotion} />
   </Canvas>
 })

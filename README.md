@@ -6,7 +6,7 @@
 
 After Us is an interactive procedural world where vegetation gradually reclaims abandoned streets, rooftops, railways, and waterways. The user acts as an ecological caretaker: adjust environmental conditions, explore connected districts, and observe how plant growth and structural weathering change the landscape over time.
 
-The project brings course concepts—seeded randomness, coherent noise, spatial constraints, shape grammars, local growth rules, and real-time rendering—into one explorable world. Nine standalone experiments provide focused studies of these techniques and related systems.
+After Us explores generative world design through seeded randomness, coherent noise, spatial constraints, shape grammars, local growth rules, and real-time rendering. These systems work together to create an explorable, evolving environment. Nine standalone experiments examine individual techniques and related systems.
 
 ![After Us overview: a miniature neighborhood with varied building heights, reclaimed vegetation, an elevated railway, a canal, and exposed soil layers](docs/assets/screenshots/after-us-overview.jpg)
 
@@ -97,8 +97,9 @@ Weathering accumulates with elapsed years, dampness, exposure, and root pressure
 
 ## Overview cutout
 
-The landing page presents a non-interactive, fixed-camera diorama using the same architecture and botanical generators as the main world, with its own showcase configuration.
+The landing page presents a draggable, rotatable diorama using the same architecture and botanical generators as the main world, with its own showcase configuration.
 
+- **Interactive viewing:** drag with a mouse or one finger to rotate; use arrow keys when the canvas is focused. Double-click or press Home to restore the opening view. The growth loop continues while rotating.
 - **Six varied buildings:** a broader five-storey block, three-storey residence, two-storey arcade, low cottage, workshop, and domed conservatory. Staggered footprints leave alleys and open space around the railway and canal.
 - **An excavated land section:** a curved outline, deep layered soil, embedded stones and brick fragments, exposed roots, and a softly fading underside. A transparent canvas blends the model into the page background.
 - **A 32-second growth loop:** bare ruins transition to mature vegetation, hold for eight seconds, and fade before restarting. Five cached ecological states cover Years 0–80; the architecture stays at its prepared Year 32 condition throughout this presentation loop.

@@ -16,8 +16,8 @@ export function WorldPreview({ large = false }) {
     return () => { observer.disconnect(); document.removeEventListener('visibilitychange', onVisibility); media.removeEventListener('change', onMotion) }
   }, [])
   const active = visible && pageVisible && !reducedMotion
-  return <figure ref={container} className={`world-preview${large ? ' world-preview-large' : ''}`} data-animating={active} aria-label="A deeply excavated 3D cutout of After Us with exposed soil, rock, and roots, automatically evolving from abandoned buildings to vegetation-covered ruins. Non-interactive preview.">
-    <div className="world-preview-scene" aria-hidden="true">
+  return <figure ref={container} className={`world-preview${large ? ' world-preview-large' : ''}`} data-animating={active} aria-label="A deeply excavated 3D cutout of After Us with exposed soil, rock, and roots, automatically evolving from abandoned buildings to vegetation-covered ruins." title="Drag to rotate · Double-click to reset">
+    <div className="world-preview-scene">
       <div className="world-preview-canvas" ref={fadeRef}>{mounted && <Suspense fallback={<div className="preview-loading">Loading world preview…</div>}><WorldCutout active={active} reducedMotion={reducedMotion} fadeRef={fadeRef} /></Suspense>}</div>
     </div>
   </figure>
