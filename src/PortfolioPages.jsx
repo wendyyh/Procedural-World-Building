@@ -2,21 +2,6 @@ import { EXPERIMENTS, experimentHref } from './experiments.js'
 import { ExperimentArtwork } from './ExperimentArtwork.jsx'
 import { WorldPreview } from './WorldPreview.jsx'
 
-function SystemAccordion() {
-  return (
-    <details className="system-accordion">
-      <summary><span>Explore the systems behind the world</span><span>{EXPERIMENTS.length} studies <b aria-hidden="true">＋</b></span></summary>
-      <div className="system-accordion-content">
-        {EXPERIMENTS.map((experiment) => (
-          <a href={experimentHref(experiment.slug)} key={experiment.slug}>
-            <span>{experiment.number}</span><strong>{experiment.system}</strong><span aria-hidden="true">↗</span>
-          </a>
-        ))}
-      </div>
-    </details>
-  )
-}
-
 function ExperimentCard({ experiment }) {
   return (
     <a className={`experiment-card experiment-card-${experiment.slug}`} href={experimentHref(experiment.slug)}>
@@ -39,10 +24,10 @@ export function Overview() {
       <section className="overview-hero">
         <div className="overview-copy">
           <p className="eyebrow">PROCEDURAL WORLD / PROJECT OVERVIEW</p>
-          <h1>A world built from rules.</h1>
+          <h1><span>A world reclaimed</span><span>by nature.</span></h1>
           <p className="overview-lead">
-            A customizable world is taking shape. Explore the vision for the place we are building,
-            and the interactive studies shaping its terrain, ecology, movement, and stories.
+            Explore After Us, a procedural world where nature reclaims abandoned streets,
+            rooftops, and railways. Adjust the conditions and watch the ecosystem evolve.
           </p>
           <div className="overview-actions">
             <a className="primary-link" href="#world">Explore the world <span aria-hidden="true">↗</span></a>
@@ -51,36 +36,7 @@ export function Overview() {
         </div>
         <div className="overview-visual">
           <WorldPreview />
-          <SystemAccordion />
         </div>
-      </section>
-      <section className="overview-next" aria-labelledby="next-heading">
-        <div>
-          <p className="eyebrow">THE IDEA</p>
-          <h2 id="next-heading">From separate studies to one coherent place.</h2>
-        </div>
-        <p>Terrain, ecology, motion, branching forms, and possible histories are becoming a shared set of rules. The next step is to bring them together in a world people can shape and revisit.</p>
-      </section>
-    </main>
-  )
-}
-
-export function WorldLanding() {
-  return (
-    <main className="portfolio-page world-page">
-      <section className="world-hero">
-        <div className="world-copy">
-          <p className="eyebrow">THE WORLD / IN DEVELOPMENT</p>
-          <h1>A place shaped by your choices.</h1>
-          <p>The future world will bring terrain, living systems, pathways, and possible histories into one customizable place. This is a preview of that direction while the interactive model is being built.</p>
-          <a className="text-link" href="#experiments">Explore the working experiments <span aria-hidden="true">↗</span></a>
-        </div>
-        <WorldPreview large />
-      </section>
-      <section className="world-principles" aria-label="World building themes">
-        <div><span>01 / SHAPE</span><h2>Form the landscape</h2><p>Start with terrain, elevation, water, and the paths that connect them.</p></div>
-        <div><span>02 / GROW</span><h2>Give it life</h2><p>Populate the world with ecology, movement, and branching forms.</p></div>
-        <div><span>03 / EVOLVE</span><h2>Follow its futures</h2><p>Let rules and decisions generate distinct histories from one starting place.</p></div>
       </section>
     </main>
   )

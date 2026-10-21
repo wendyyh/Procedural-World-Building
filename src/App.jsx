@@ -10,7 +10,8 @@ import { DEFAULT_VOXEL_CONFIG, VoxelStudy } from './features/voxel/VoxelStudy.js
 import { ShaderLab } from './features/shaders/ShaderLab.jsx'
 import { NoiseLab } from './features/noise/NoiseLab.jsx'
 import { PresetPanelLoader } from './features/presets/PresetPanelLoader.jsx'
-import { ExperimentIndex, Overview, WorldLanding } from './PortfolioPages.jsx'
+import { ExperimentIndex, Overview } from './PortfolioPages.jsx'
+import { AfterUsWorld } from './features/after-us/AfterUsWorld.jsx'
 import { EXPERIMENTS, experimentHref } from './experiments.js'
 import { ScatteringStudy } from './features/environment/ScatteringStudy.jsx'
 import { PathwaysStudy } from './features/environment/PathwaysStudy.jsx'
@@ -365,7 +366,7 @@ export default function App() {
           </div>
         </nav>
       )}
-      {view === 'overview' ? <Overview /> : view === 'world' ? <WorldLanding /> : view === 'experiments' ? <ExperimentIndex /> : view === 'noise' ? <NoiseLab /> : view === 'scatter' ? <ScatteringStudy /> : view === 'paths' ? <PathwaysStudy config={pathConfig} setConfig={setPathConfig} /> : view === 'flow' ? <FlowFieldStudy pathConfig={pathConfig} /> : view === 'shaders' ? <ShaderLab /> : view === 'branching' ? <BranchingForms /> : view === 'worldlines' ? <WorldlinesStudy /> : view === 'voxel' ? (
+      {view === 'overview' ? <Overview /> : view === 'world' ? <AfterUsWorld /> : view === 'experiments' ? <ExperimentIndex /> : view === 'noise' ? <NoiseLab /> : view === 'scatter' ? <ScatteringStudy /> : view === 'paths' ? <PathwaysStudy config={pathConfig} setConfig={setPathConfig} /> : view === 'flow' ? <FlowFieldStudy pathConfig={pathConfig} /> : view === 'shaders' ? <ShaderLab /> : view === 'branching' ? <BranchingForms /> : view === 'worldlines' ? <WorldlinesStudy /> : view === 'voxel' ? (
         <VoxelStudy
           config={voxelConfig}
           setConfig={setVoxelConfig}
