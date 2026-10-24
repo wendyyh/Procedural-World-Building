@@ -4,7 +4,7 @@
 
 *A world shaped by what we leave behind.*
 
-After Us is an interactive procedural world where vegetation gradually reclaims abandoned streets, rooftops, railways, and waterways. The user acts as an ecological caretaker: adjust environmental conditions, explore connected districts, and observe how plant growth and structural weathering change the landscape over time.
+After Us is a world the player builds and plants. Start with an open parcel, place rooms and salvaged structures, shape their roofs and storeys, and plant the seeds that reclaim them. Explore neighboring parcels and return to your own growing places. This branch contains the first playable user-building study.
 
 After Us explores generative world design through seeded randomness, coherent noise, spatial constraints, shape grammars, local growth rules, and real-time rendering. These systems work together to create an explorable, evolving environment. Nine standalone experiments examine individual techniques and related systems.
 
@@ -57,43 +57,24 @@ Routes are URL fragments appended to the running application's address.
 | Area | Route | Experience |
 | --- | --- | --- |
 | Overview | `#overview` | An automatically evolving miniature neighborhood and entry points to the world and experiments |
-| World | `#world` | The interactive After Us environment, district navigation, ecological controls, and building decay |
+| World | `#world` | Player building, seed placement, local saves, growth, and connected parcel exploration |
 | Experiments | `#experiments` | Nine independent studies with their own controls and visualizations |
 
 ## After Us world
 
-### Explore connected districts
+**Build → plant → let it grow → explore.** Open `#world` for the first playable builder.
 
-The world extends through procedurally generated districts containing housing, courtyards, glassworks, railway infrastructure, and ruins. Terrain and infrastructure use shared world coordinates so neighboring areas meet consistently.
+- **Build:** choose a living room, workshop, glasshouse, or garden ruin, then click inside the parcel. A translucent footprint previews placement; **R** or **Rotate footprint** swaps its orientation. Streets, canals, neighboring buildings, railway corridors, and planted roots stay clear.
+- **Select:** click a structure to add or remove storeys (living rooms support one to four), choose its roof and material, move it, or remove it. The procedural grammar supplies windows, supports, roof shapes, and details around these choices.
+- **Plant:** choose meadow, fern, ivy, or birch. Click open ground for ground plants, or click a building to attach ivy. Small root markers let you select and remove a planting. All vegetation in the playable world originates from placed seeds.
+- **Let it grow:** advance five years or play growth. Each seed grows from its planting date; each structure weathers from its placement date. Ferns respond to moisture and shade. Ivy follows the host structure and moves with it.
+- **Explore:** drag to pan across neighboring parcels, or use the direction buttons. Right-drag orbits; scrolling zooms. Every parcel has a stable coordinate-derived seed, with continuous terrain and infrastructure.
+- **Undo/redo:** use the toolbar or Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z. Removing a structure removes its attached ivy as one reversible action. Undo history lasts for the current session.
+- **Save:** the world, placements, seeds, and elapsed time save automatically in this browser on this device. Returning to a parcel or reloading restores the garden. A storage failure is shown in the save indicator. Cloud saves are not implemented for this study.
 
-- **Drag** to pan into adjacent districts.
-- **Right-drag** to orbit; **scroll** to zoom.
-- Use the **district arrows** to move between neighboring areas.
-- Use **↺ View** to reset the camera or **Return to the Old Exchange** to return to the starting district.
+The **Light & habitat** disclosure contains the independent day/night controls and habitat overlays. Growth and aging are simplified visual rules, not validated ecological forecasts.
 
-### Controls
-
-| Section | Controls and effects |
-| --- | --- |
-| **Time & Evolution** | Scrub **Elapsed Years** from 0–80, play/pause, advance five years, choose simulation speed, or return to Year 0. Years drive ecological succession and structural weathering together. |
-| **Day & Night Cycle**, within Time & Evolution | Scrub **Time of Day** continuously from 00:00–24:00. Sun/moon direction, intensity, sky, ambient color, water color, and shadows transition through dawn, daylight, golden hour, dusk, and night. **Auto Cycle** completes a day in three minutes. |
-| **Environmental Conditions** | Adjust long-term sunlight, humidity, soil health, and water level. These affect habitat suitability, growth, and exposure. |
-| **Buildings & Decay** | Control density, courtyard/street/cluster layouts, height, material, and weathering rate. Inspect aging checkpoints at Years 0, 20, 40, 60, and 80. |
-| **Vegetation & Growth** | Select mixed succession, climbers, meadow plants, or woodland; adjust seed availability, growth rate, and dispersal. |
-| **Explore the Ecosystem** | Switch between Natural, Light, Moisture, Soil, and Ecological Impact views to inspect conditions and infrastructure effects. |
-| **World Generation** | Reproduce a world from a seed or generate a new seed. |
-
-**Time of Day and Elapsed Years are independent.** The daily cycle changes the scene's lighting; it does not advance years or simulate daily photosynthesis. The environmental Sunlight control and Light overlay describe long-term exposure.
-
-Changing a condition recomputes the simulated state at the selected year, including while playback is paused. Ground cover, facade growth, connected habitats, moisture, and building condition describe the **current district at that simulated year**. They are model outputs, not measured environmental data or validated forecasts.
-
-### Vegetation and structural change
-
-Ten botanical forms include clover, ferns, grasses, reeds, shrubs, cascading ivy, sedum, broadleaf trees, birches, and willows. Curved leaves, layered canopies, and muted flowers give the vegetation a softer miniature appearance. Species form patches according to moisture, shade, and proximity to water; roofs, walls, and open ground provide different habitats.
-
-Buildings use modular facades, windows, rooftop details, and varied roof forms: pitched cottages and townhouses, sawtooth workshops, arched entrances, domed conservatories, barrel glasshouses, and open trusses. Placement reserves space for streets, neighboring foundations, railways, and canals.
-
-Weathering accumulates with elapsed years, dampness, exposure, and root pressure, with different resistance by material. Surfaces develop cracks and plaster loss; walls break along uneven profiles, slabs retain supported sections, and masonry collects in rubble piles below. Openings change local light, soil, and growth barriers. Plants stay attached to the visible supporting walls, roofs, and frames.
+This first study uses small building assemblies with editable storeys and roofs. Individual wall construction, a resource economy, progression unlocks, and sharing remain future work. The overview remains a curated example of the same visual system; the playable world starts empty. See [the builder implementation notes](docs/planning/user-build-approach.md).
 
 ## Overview cutout
 
@@ -165,6 +146,7 @@ npm run verify:voxel
 npm run verify:presets
 npm run verify:branching
 npm run verify:after-us
+npm run verify:builder
 ```
 
 The After Us check covers district continuity, ecological responses, building placement and aging, structural support, botanical geometry, the continuous day/night cycle, streaming/cache behavior, and the overview's neighborhood proportions and growth loop. Visual review in the browser complements these checks for composition, animation, lighting, and responsive layout.
@@ -179,7 +161,7 @@ The application works without Firebase. To enable cloud saves, copy `.env.exampl
 
 - After Us is a deterministic visual simulation prototype. Ecological succession and structural damage use simplified rules; debris motion is a visual approximation.
 - Growth is computed on each district's local grid. Terrain and infrastructure connect across districts; ecology does not run as one global population simulation.
-- World controls and simulation state are session-only. After Us cloud persistence and natural-language controls are future work.
+- Player-built worlds save locally in the browser. After Us cloud persistence and sharing are future work.
 - The overview uses a curated showcase configuration. The nine experiments remain standalone studies; Branching Forms and Worldlines are also session-only.
 
 ## Project notebook

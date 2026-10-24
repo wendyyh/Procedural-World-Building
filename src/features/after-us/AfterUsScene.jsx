@@ -7,6 +7,7 @@ import { ArchitectureSurfaces, DebrisInstances } from './ArchitectureSurfaces.js
 import { UrbanFoliage } from './UrbanFoliage.jsx'
 import { createLightingState, readDayClock, sampleDayNight } from './dayNight.js'
 import { canalX, CHUNK_SIZE, clamp, GRID, habitat, PALETTE, waterHeight } from './worldModel.js'
+import { BuilderInteraction } from './BuilderInteraction.jsx'
 
 const SHADOW_SETTINGS = { type: PCFShadowMap }
 
@@ -199,7 +200,7 @@ function Navigation({ revision, jump, focus, onFocus }) {
   return null
 }
 
-export function AfterUsScene({ tiles, config, overlay, focus, onFocus, cameraRevision, jump, dayClock }) {
+export function AfterUsScene({ tiles, config, overlay, focus, onFocus, cameraRevision, jump, dayClock, editor }) {
   const lighting = useMemo(createLightingState, [])
   return <Canvas orthographic shadows={SHADOW_SETTINGS} dpr={[1, 1.6]} camera={{ position: [25, 21, 28], zoom: 20, near: 0.1, far: 190 }} gl={{ antialias: true, alpha: false }}>
     <color attach="background" args={[PALETTE.sky]} /><fog attach="fog" args={[PALETTE.sky, 53, 101]} />
@@ -208,7 +209,8 @@ export function AfterUsScene({ tiles, config, overlay, focus, onFocus, cameraRev
       const distance = Math.hypot(entry.model.ox - focus.x, entry.model.oz - focus.z)
       return <District key={entry.model.key} entry={entry} detail={distance < CHUNK_SIZE * 0.86 ? 2 : distance < CHUNK_SIZE * 1.65 ? 1 : 0} config={config} overlay={overlay} lighting={lighting} />
     })}
-    <OrbitControls makeDefault target={[0, 2.1, 0]} enableDamping dampingFactor={0.08} enablePan screenSpacePanning={false} minZoom={10} maxZoom={70} minPolarAngle={0.3} maxPolarAngle={Math.PI / 2.3} mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.ROTATE }} touches={{ ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_ROTATE }} />
+    {editor && <BuilderInteraction model={editor.model} editor={editor} />}
+    <OrbitControls makeDefault target={[0, 2.1, 0]} enableDamping dampingFactor={0.08} enablePan screenSpacePanning={false} minZoom={10} maxZoom={70} minPolarAngle={0.3} maxPolarAngle={Math.PI / 2.3} mouseButtons={{ LEFT: !editor || editor.mode === 'explore' ? MOUSE.PAN : -1, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.ROTATE }} touches={{ ONE: !editor || editor.mode === 'explore' ? TOUCH.PAN : -1, TWO: TOUCH.DOLLY_ROTATE }} />
     <Navigation revision={cameraRevision} jump={jump} focus={focus} onFocus={onFocus} />
   </Canvas>
 }

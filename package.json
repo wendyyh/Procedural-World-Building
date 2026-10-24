@@ -13,7 +13,8 @@
     "verify:voxel": "node scripts/verify-voxel.mjs",
     "verify:presets": "node scripts/verify-presets.mjs",
     "verify:branching": "node scripts/verify-branching.mjs",
-    "verify:after-us": "node scripts/verify-after-us.mjs"
+    "verify:after-us": "node scripts/verify-after-us.mjs",
+    "verify:builder": "node scripts/verify-builder.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

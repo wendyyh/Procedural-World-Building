@@ -1,91 +1,138 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { AfterUsScene } from './AfterUsScene.jsx'
 import { DayNightControls } from './DayNightControls.jsx'
 import { createDayClock } from './dayNight.js'
-import { CHUNK_SIZE, DEFAULT_AGE, DEFAULT_WORLD, districtKey } from './worldModel.js'
+import { CHUNK_SIZE, DEFAULT_WORLD, districtKey } from './worldModel.js'
 import { useDistrictStream } from './useDistrictStream.js'
-import { BUILDING_DEFAULTS, structureStage } from './buildingModel.js'
+import { BUILD_KIT, EMPTY_PARCEL, SAVE_KEY, buildingDraft, changeParcel, historyReducer, newPlayerWorld, parsePlayerWorld, removePlacement, validateBuilding, validateSeed } from './builderModel.js'
+import { SEEDS } from './plantedEcology.js'
 import './after-us.css'
+import './builder.css'
 
-function Range({ label, value, min = 0, max = 1, step = 0.05, onChange, hint, format }) {
-  return <label className="after-range"><span className="after-range-heading"><span>{label}</span><strong>{format ? format(value) : `${Math.round(value * 100)}%`}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} aria-label={label} style={{ '--range-progress': `${(value - min) / (max - min) * 100}%` }} />{hint && <small>{hint}</small>}</label>
+function KitIcon({ kind }) {
+  return <svg viewBox="0 0 72 56" fill="none" aria-hidden="true">
+    {['room', 'workshop'].includes(kind) ? <><path d="M12 23 35 10l25 13-23 14z" fill="#d4b49a" /><path d="M12 23v22l25 10V37z" fill="#b79d85" /><path d="m37 37 23-14v23L37 55z" fill="#ddc6ad" /><path d="M19 29v8l6 3v-8m18 8v8l6-3v-8m3-2v8l5-3v-8" fill="#788e82" />{kind === 'workshop' && <path d="m12 23 7-13 8 5 7-12 10 6 7-5 9 19-23 14z" fill="#9aa597" />}</>
+      : kind === 'glasshouse' ? <><path d="M10 42V29C10 4 39 2 41 28v23z" fill="#bed0bf" opacity=".7" /><path d="m10 42 20-11 31 10-20 10z" fill="#c9bda2" /><path d="M10 42V29C10 4 39 2 41 28v23M20 37V24C20 0 49-2 51 23v23M30 31V19C30-5 59-7 61 18v23M10 29l20-10m11 9 20-10M25 10l20-10" stroke="#7e9383" strokeWidth="1.5" /></>
+        : kind === 'ruin' ? <><path d="m12 38 23-12 25 12-23 14z" fill="#d4c6a9" /><path d="M13 38V14l5 2v6l8-4v-9l8-4v22" fill="#b8a48b" /><path d="m34 5 25 12v22L34 27z" fill="#d4bba0" /><path d="M39 25V14l6 3v11m5 2V19l6 3v11" fill="#879780" /></>
+          : kind === 'birch' ? <><path d="M36 49V20m0 16-9-9m9 3 10-10" stroke="#a6a58d" strokeWidth="3" /><ellipse cx="34" cy="19" rx="18" ry="16" fill="#a2b38a" /><ellipse cx="44" cy="23" rx="12" ry="12" fill="#859e73" /><ellipse cx="25" cy="25" rx="11" ry="10" fill="#b9c49b" /></>
+            : <><path d="M18 45c10-4 22-3 36 0" stroke="#afad8a" strokeWidth="2" />{[0, 1, 2, 3, 4].map((n) => <g key={n} transform={`translate(${20 + n * 8} ${43 - n % 2 * 5}) rotate(${n * 11 - 22})`}><path d="M0 0v-23" stroke="#789264" strokeWidth="1.5" /><ellipse cx="-4" cy="-12" rx={kind === 'fern' ? 3 : 5} ry="9" transform="rotate(-38 -4 -12)" fill={kind === 'ivy' ? '#789b72' : '#a2b383'} /><ellipse cx="4" cy="-20" rx="5" ry="9" transform="rotate(38 4 -20)" fill="#819f71" /></g>)}</>}
+  </svg>
 }
-function Group({ number, title, children }) { return <section className="after-control-group"><div className="after-group-title"><span>{number}</span><h3>{title}</h3></div><div className="after-group-body">{children}</div></section> }
-const LABELS = { sunlight: 'Sunlight', humidity: 'Humidity', soilQuality: 'Soil health', waterLevel: 'Water level', density: 'Seed availability', growthRate: 'Growth rate', dispersal: 'Seed dispersal', community: 'Plant community', buildingDensity: 'Building density', buildingLayout: 'Building layout', buildingHeight: 'Building height', buildingMaterial: 'Building material', weatheringRate: 'Weathering rate' }
-const LAYOUT_COPY = { courtyard: 'Buildings frame open courtyards with space for connected habitats.', streets: 'Repeated building rows follow the street grid, leaving lanes between blocks.', clustered: 'Smaller footprints gather in irregular groups with narrow gaps.' }
-const COMMUNITY_COPY = { balanced: 'A mix of pioneer plants, climbers, shrubs, and young trees.', climbers: 'Climbers favor humid shade and use walls, pipes, and frames as supports.', meadow: 'Grasses and flowers spread across sunny cracks and open ground.', woodland: 'Shrubs and trees establish where soil and connected open ground allow deeper roots.' }
-const OVERLAYS = { natural: ['Natural', 'Natural scene colors.'], light: ['Light', 'Long-term sun exposure: gold is exposed; blue-gray is sheltered. Independent of Time of Day.'], moisture: ['Moisture', 'Teal marks wet ground. Canals and sheltered walls retain moisture.'], soil: ['Soil', 'Green indicates healthier rooting ground; gray marks sealed or impoverished surfaces.'], impact: ['Ecological Impact', 'Roads interrupt dispersal. Buildings shelter roots, roofs dry faster, and water connects habitats.'] }
-const DIRECTIONS = [['northwest', -1, -1], ['north', 0, -1], ['northeast', 1, -1], ['west', -1, 0], ['here', 0, 0], ['east', 1, 0], ['southwest', -1, 1], ['south', 0, 1], ['southeast', 1, 1]]
+
+function loadHistory() {
+  let present = null
+  try { present = parsePlayerWorld(localStorage.getItem(SAVE_KEY)) } catch { /* Storage may be unavailable. */ }
+  return { present: present ?? newPlayerWorld(), past: [], future: [] }
+}
+const MODES = [['build', 'Build', '⌂'], ['plant', 'Plant', '♧'], ['select', 'Select', '↖'], ['explore', 'Explore', '✥']]
+const DIRECTIONS = [['Northwest', -1, -1, '↖'], ['North', 0, -1, '↑'], ['Northeast', 1, -1, '↗'], ['West', -1, 0, '←'], ['Home', 0, 0, '⌂'], ['East', 1, 0, '→'], ['Southwest', -1, 1, '↙'], ['South', 0, 1, '↓'], ['Southeast', 1, 1, '↘']]
 
 export function AfterUsWorld() {
-  const dayClock = useRef(createDayClock())
-  const [config, setConfig] = useState(DEFAULT_WORLD), [seedDraft, setSeedDraft] = useState(DEFAULT_WORLD.seed)
-  const [overlay, setOverlay] = useState('natural'), [year, setYear] = useState(DEFAULT_AGE), [playing, setPlaying] = useState(false), [speed, setSpeed] = useState(2)
-  const [focus, setFocus] = useState({ x: 0, z: 0 }), [jump, setJump] = useState(null), [cameraRevision, setCameraRevision] = useState(0), [changed, setChanged] = useState(null)
+  const [history, dispatch] = useReducer(historyReducer, undefined, loadHistory)
+  const world = history.present
+  const [mode, setMode] = useState('build'), [buildKind, setBuildKind] = useState('room'), [seedKind, setSeedKind] = useState('meadow')
+  const [turned, setTurned] = useState(false), [hover, setHover] = useState(null), [selectedId, setSelectedId] = useState(null)
+  const [focus, setFocus] = useState({ x: 0, z: 0 }), [jump, setJump] = useState(null), [cameraRevision, setCameraRevision] = useState(0)
+  const [playing, setPlaying] = useState(false), [notice, setNotice] = useState('Choose a building piece, then click the parcel to place it.')
+  const [saveStatus, setSaveStatus] = useState('Saving your world…'), [overlay, setOverlay] = useState('natural')
+  const dayClock = useRef(createDayClock(14))
   const center = useMemo(() => ({ x: Math.round(focus.x / CHUNK_SIZE), z: Math.round(focus.z / CHUNK_SIZE) }), [focus.x, focus.z])
-  const stream = useDistrictStream(config, year, center)
-  const stats = stream.active?.snapshot.stats || { coverage: 0, facades: 0, connected: 0, moisture: 0, buildings: 0, integrity: 0, fallen: 0 }
-  const statusYear = stream.active?.snapshot.year ?? year
-  const structures = stream.active?.snapshot.structures || []
-  const meanDamage = structures.reduce((sum, b) => sum + b.damage, 0) / Math.max(1, structures.length)
-  const stat = (key) => stream.pending ? '—' : stats[key]
-  const update = useCallback((key, value) => { setConfig((current) => ({ ...current, [key]: value })); setChanged(key) }, [])
-  const onFocus = useCallback((next) => setFocus(next), [])
-  useEffect(() => { if (!playing) return undefined; const interval = window.setInterval(() => setYear((current) => Math.min(80, current + speed)), 1000); return () => window.clearInterval(interval) }, [playing, speed])
-  useEffect(() => { if (year >= 80) setPlaying(false) }, [year])
-  const navigate = (dx, dz) => setJump({ x: (center.x + dx) * CHUNK_SIZE, z: (center.z + dz) * CHUNK_SIZE, revision: Date.now() })
-  const returnHome = () => { setFocus({ x: 0, z: 0 }); setJump({ x: 0, z: 0, revision: Date.now() }); setCameraRevision((current) => current + 1) }
-  const regenerate = (random = false) => {
-    const seed = random ? `after-us-${Math.random().toString(36).slice(2, 7)}` : seedDraft.trim() || DEFAULT_WORLD.seed
-    setSeedDraft(seed); setConfig((current) => ({ ...current, seed })); setChanged('seed'); returnHome()
-  }
-  const reset = () => { setConfig((current) => ({ ...current, sunlight: DEFAULT_WORLD.sunlight, humidity: DEFAULT_WORLD.humidity, soilQuality: DEFAULT_WORLD.soilQuality, waterLevel: DEFAULT_WORLD.waterLevel })); setChanged('environment') }
-  const feedback = stream.pending ? 'Updating simulated state…' : changed === 'sunlight' ? 'Long-term sun exposure and structural shade updated.' : changed === 'humidity' || changed === 'waterLevel' ? `${stats.moisture}% ground moisture in this district.` : changed === 'community' ? COMMUNITY_COPY[config.community] : changed === 'soilQuality' ? 'Rooting conditions updated on ground, roofs, and wall seams.' : changed === 'seed' ? 'World generated from the selected seed.' : changed === 'environment' ? 'Environmental conditions reset to defaults.' : `${stats.coverage}% ground cover · ${stats.facades}% facade growth.`
+  const key = districtKey(center.x, center.z), parcel = world.districts[key] ?? EMPTY_PARCEL
+  const config = useMemo(() => ({ ...DEFAULT_WORLD, seed: world.seed, playerBuilt: true, districtEdits: world.districts, weatheringRate: 0.55 }), [world.seed, world.districts])
+  const stream = useDistrictStream(config, world.year, center), model = stream.active?.model
+  const selectedBuilding = parcel.buildings.find((b) => b.id === selectedId), selectedPlant = parcel.plants.find((p) => p.id === selectedId)
+  const ghostAt = (point) => !point ? null : mode === 'move' && selectedBuilding ? { ...selectedBuilding, x: Math.round(point.x * 2) / 2, z: Math.round(point.z * 2) / 2 } : mode === 'build' ? buildingDraft(buildKind, point.x, point.z, turned) : null
+  const ghost = ghostAt(hover)
+  const host = model?.buildings.find((b) => b.authoredId === hover?.buildingId)
+  const invalid = ghost ? validateBuilding(model, ghost, mode === 'move' ? selectedId : undefined) : hover && mode === 'plant' ? validateSeed(model, seedKind, hover.x, hover.z, host) : null
+  const stats = stream.active?.snapshot.stats
+  const allParcels = Object.values(world.districts), totalBuildings = allParcels.reduce((sum, p) => sum + p.buildings.length, 0), totalPlants = allParcels.reduce((sum, p) => sum + p.plants.length, 0)
 
-  return <main className="after-world">
-    <header className="after-header"><div><p className="after-eyebrow">NATURE RECLAIMS THE WORLD</p><h1>After Us<span>.</span></h1><p>A world shaped by what we leave behind.</p></div></header>
-    <div className="after-layout">
+  useEffect(() => {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(world)); setSaveStatus('Saved on this device') }
+    catch { setSaveStatus('Storage unavailable · keep this tab open') }
+  }, [world])
+  useEffect(() => {
+    if (!playing || world.year >= 9999) return undefined
+    const timer = setInterval(() => dispatch({ type: 'year', amount: 1 }), 900)
+    return () => clearInterval(timer)
+  }, [playing, world.year >= 9999])
+  useEffect(() => { setHover(null); setSelectedId(null); setMode((current) => current === 'move' ? 'select' : current) }, [key])
+  const onFocus = useCallback((value) => setFocus(value), [])
+  const chooseMode = (value) => { setMode(value); setHover(null); setPlaying(false) }
+  const edit = (update) => dispatch({ type: 'edit', update })
+  const updateBuilding = (patch) => {
+    edit((current) => changeParcel(current, key, (p) => ({ ...p, buildings: p.buildings.map((b) => b.id === selectedId ? { ...b, ...patch } : b) })))
+    setNotice('Your building changed. Its shape changes the shade and surfaces around it.')
+  }
+  const removeSelected = () => {
+    edit((current) => removePlacement(current, key, selectedId)); setSelectedId(null); setMode('select'); setNotice('Removed. Undo will bring it back.')
+  }
+  const navigate = (dx, dz, home = false) => {
+    setPlaying(false); setHover(null)
+    setJump({ x: home ? 0 : (center.x + dx) * CHUNK_SIZE, z: home ? 0 : (center.z + dz) * CHUNK_SIZE, revision: Date.now() })
+  }
+  const onAction = (point) => {
+    if (stream.pending || !model) { setNotice('Preparing the parcel…'); return }
+    if (mode === 'select') { setSelectedId(point.seedId ?? point.buildingId ?? null); return }
+    if (mode === 'build' || mode === 'move') {
+      const draft = ghostAt(point), reason = validateBuilding(model, draft, mode === 'move' ? selectedId : undefined)
+      if (reason) { setNotice(reason); return }
+      if (mode === 'move') { updateBuilding({ x: draft.x, z: draft.z }); setMode('select'); setHover(null); setNotice('Building moved. Its ivy moves with it.'); return }
+      if (parcel.buildings.length >= 40) { setNotice('This parcel is full. Explore a neighboring block.'); return }
+      const building = { ...draft, id: crypto.randomUUID(), createdAt: world.year }
+      edit((current) => changeParcel(current, key, (p) => ({ ...p, buildings: [...p.buildings, building] })))
+      setSelectedId(building.id); setMode('select'); setHover(null)
+      setNotice(`${BUILD_KIT[buildKind].name} placed. Shape it below, or choose Plant to bring it to life.`)
+    } else if (mode === 'plant') {
+      const target = model.buildings.find((b) => b.authoredId === point.buildingId)
+      const reason = validateSeed(model, seedKind, point.x, point.z, target)
+      if (reason) { setNotice(reason); return }
+      if (parcel.plants.length >= 150) { setNotice('This garden is full. Explore another block to keep planting.'); return }
+      const plant = { id: crypto.randomUUID(), kind: seedKind, x: target ? target.x : point.x, z: target ? target.z + target.depth / 2 + 0.3 : point.z, plantedAt: world.year, ...(target ? { buildingId: target.authoredId } : {}) }
+      edit((current) => changeParcel(current, key, (p) => ({ ...p, plants: [...p.plants, plant] })))
+      setSelectedId(plant.id); setHover(null); setNotice(`${SEEDS[seedKind].name} planted. Advance five years to watch it grow.`)
+    }
+  }
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || event.target.isContentEditable) return
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); setPlaying(false); dispatch({ type: event.shiftKey ? 'redo' : 'undo' }); setSelectedId(null); setMode('select') }
+      else if (event.key === 'Escape') { chooseMode('select'); setSelectedId(null) }
+      else if (!event.metaKey && !event.ctrlKey && event.key.toLowerCase() === 'r' && mode === 'build') setTurned((v) => !v)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [mode])
+  const undo = (type) => { setPlaying(false); dispatch({ type }); setSelectedId(null); setMode('select'); setHover(null); setNotice(type === 'undo' ? 'Your last change was undone.' : 'Your change was restored.') }
+  const guidance = !totalBuildings ? ['01', 'Make a place.', 'Place your first room. Its walls, windows, and roof will take shape around your choice.'] : !totalPlants ? ['02', 'Invite nature in.', 'Choose Plant. Sow a meadow on the ground or ivy against your new building.'] : world.year === 0 ? ['03', 'Give it time.', 'Advance five years and watch your seeds find their way through the world you built.'] : ['04', 'Keep making room.', 'Add to your garden, or cross the street to begin a new one. Your work stays here.']
+  const editor = { model, mode, hover, ghost, invalid, selectedId, onHover: setHover, onAction }
+
+  return <main className="after-world builder-world">
+    <header className="after-header"><div><p className="after-eyebrow">A WORLD YOU BUILD & PLANT</p><h1>After Us<span>.</span></h1><p>Make a little place. Let nature take its time.</p></div><div className="builder-save"><i />{saveStatus}<span>{totalBuildings} structures · {totalPlants} seeds</span></div></header>
+    <div className="builder-layout">
       <div className="after-visual-column">
-        <section className="after-stage" aria-label="Explore an extendable abandoned city reclaimed by nature" aria-busy={stream.pending} data-district-x={center.x} data-district-z={center.z} data-cached-districts={stream.cached} data-preview-latency-ms={stream.latency}>
-          <AfterUsScene tiles={stream.tiles} config={config} overlay={overlay} focus={focus} onFocus={onFocus} cameraRevision={cameraRevision} jump={jump} dayClock={dayClock} />
-          {!stream.active && <div className="after-world-loading" role="status">{stream.error || 'Loading district…'}</div>}
+        <div className="builder-toolbar"><div role="group" aria-label="World tools">{MODES.map(([value, label, icon]) => <button key={value} type="button" aria-pressed={mode === value || value === 'select' && mode === 'move'} onClick={() => chooseMode(value)}><span aria-hidden="true">{icon}</span>{label}</button>)}</div><div className="builder-history"><button type="button" aria-label="Undo last change" disabled={!history.past.length} onClick={() => undo('undo')}>↶</button><button type="button" aria-label="Redo last change" disabled={!history.future.length} onClick={() => undo('redo')}>↷</button></div></div>
+        <section className={`after-stage builder-stage tool-${mode}`} aria-label="Build and plant your world" aria-busy={stream.pending} data-district-x={center.x} data-district-z={center.z} onPointerLeave={() => setHover(null)}>
+          <AfterUsScene tiles={stream.tiles} config={config} overlay={overlay} focus={focus} onFocus={onFocus} cameraRevision={cameraRevision} jump={jump} dayClock={dayClock} editor={editor} />
+          <div className="builder-parcel-label"><span>YOUR PARCEL</span><strong>{model?.name ?? 'The Old Exchange'}</strong><small>{center.x}, {center.z}</small></div>
+          {!stream.active && <div className="after-world-loading" role="status">{stream.error ?? 'Preparing your first parcel…'}</div>}
           {stream.error && stream.active && <div className="after-stream-error" role="alert">{stream.error}</div>}
-          <div className="after-scene-toolbar"><span>Drag to explore · Right-drag to orbit · Scroll to zoom</span><button type="button" onClick={() => setCameraRevision((current) => current + 1)} aria-label="Reset world camera">↺ View</button></div>
+          <div className={`builder-placement-hint ${invalid ? 'is-invalid' : ''}`} aria-live="polite">{hover && invalid ? invalid : mode === 'build' ? 'Click to place · R to rotate footprint' : mode === 'plant' ? seedKind === 'ivy' ? 'Click a building to plant ivy' : 'Click open ground to plant' : mode === 'move' ? 'Click a new position · Esc to cancel' : mode === 'select' ? 'Click a building or seed marker to edit' : 'Drag to explore neighboring parcels'}</div>
+          <div className="after-scene-toolbar"><span>Right-drag to orbit · Scroll to zoom</span><button type="button" onClick={() => setCameraRevision((v) => v + 1)}>↺ View</button></div>
         </section>
-        <div className="after-world-summary" aria-live="polite"><p className="after-summary-caption">{stream.pending ? 'Updating ecosystem status…' : `Simulated state · Year ${statusYear} · Current district`}</p><div><span>GROUND COVER</span><strong>{stat('coverage')}<small>%</small></strong><i><b style={{ width: `${stream.pending ? 0 : stats.coverage}%` }} /></i></div><div><span>FACADE GROWTH</span><strong>{stat('facades')}<small>%</small></strong><small>mean climbing extent</small></div><div><span>CONNECTED HABITATS</span><strong>{stat('connected')}<small>%</small></strong><small>adjacent vegetated patches</small></div></div>
-        <div className="after-exploration"><div><p className="after-eyebrow">YOUR CURRENT DISTRICT</p><h2>{stream.active?.model.name || 'Loading district…'}</h2><p>Drag the scene or use the arrows to explore adjacent districts.</p><button type="button" className="after-text-button" onClick={returnHome}>Return to the Old Exchange ↺</button></div><div className="after-district-map" role="group" aria-label="Explore neighboring districts">{DIRECTIONS.map(([name, dx, dz]) => { const ready = stream.tiles.some(({ model }) => model.key === districtKey(center.x + dx, center.z + dz)); return <button type="button" key={name} className={`${dx === 0 && dz === 0 ? 'current ' : ''}${ready ? 'ready' : ''}`} onClick={() => navigate(dx, dz)} aria-label={`Explore district ${name}`} title={name}>{dx === 0 && dz === 0 ? '●' : ['↖', '↑', '↗', '←', '•', '→', '↙', '↓', '↘'][DIRECTIONS.findIndex(([direction]) => direction === name)]}</button> })}</div></div>
+        <div className="builder-bottom-row"><div className="builder-guidance"><span>{guidance[0]}</span><div><h2>{guidance[1]}</h2><p>{guidance[2]}</p></div></div><div className="builder-navigation"><div><span>ANOTHER PLACE TO BEGIN</span><p>Every block is yours to shape.</p></div><div className="after-district-map" role="group" aria-label="Explore neighboring parcels">{DIRECTIONS.map(([name, dx, dz, icon]) => <button key={name} type="button" aria-label={name === 'Home' ? 'Return to your first parcel' : `Explore ${name.toLowerCase()} parcel`} title={name} className={name === 'Home' ? 'current' : world.districts[districtKey(center.x + dx, center.z + dz)] ? 'ready' : ''} onClick={() => navigate(dx, dz, name === 'Home')}>{icon}</button>)}</div></div></div>
       </div>
-      <aside className="after-controls" aria-label="Ecosystem controls">
-        <div className="after-controls-intro"><p className="after-eyebrow">WORLD CONTROLS</p><h2>Ecosystem controls</h2><p>Adjust conditions and inspect the simulated state at the selected year.</p></div>
-        <Group number="01" title="Time & Evolution">
-          <div className="after-age"><strong>{year}<small> years</small></strong><span>{year < 10 ? 'Pioneer plants are establishing.' : year < 30 ? 'Vegetation is spreading.' : year < 55 ? 'Nature is reclaiming the city.' : 'Woodland is developing.'}</span></div>
-          <Range label="Elapsed Years" value={year} max={80} step={1} format={(v) => `${v} years`} onChange={setYear} />
-          <p className="after-overlay-note">Years since departure. Preview plant growth and structural weathering together at the selected year.</p>
-          <div className="after-play-row"><button type="button" className="after-play" onClick={() => { if (year >= 80) setYear(0); setPlaying((current) => !current) }} aria-label={playing ? 'Pause simulation' : 'Play simulation'}>{playing ? 'Ⅱ Pause' : '▶ Play simulation'}</button><button type="button" className="after-step" onClick={() => setYear((current) => Math.min(80, current + 5))}>+ 5 years</button></div>
-          <label className="after-select-label">Simulation speed<select value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1 year / second</option><option value={2}>2 years / second</option><option value={8}>8 years / second</option></select></label>
-          <button type="button" className="after-text-button" onClick={() => { setYear(0); setPlaying(false) }}>Return to Year 0 ↺</button>
-          <DayNightControls clock={dayClock} />
-        </Group>
-        <Group number="02" title="Environmental Conditions"><Range label="Sunlight" value={config.sunlight} min={0.1} onChange={(v) => update('sunlight', v)} hint="Long-term sun exposure: favors pioneers and dries exposed roofs" /><Range label="Humidity" value={config.humidity} min={0.05} onChange={(v) => update('humidity', v)} hint="Damp walls favor vines; waterlogged soil can limit roots" /><Range label="Soil health" value={config.soilQuality} min={0.05} onChange={(v) => update('soilQuality', v)} hint="Supports roots in cracks, planters, and open ground" /><Range label="Water level" value={config.waterLevel} onChange={(v) => update('waterLevel', v)} hint="Canals provide moisture; flooding limits establishment" /></Group>
-        <Group number="03" title="Buildings & Decay">
-          <p className="after-overlay-note">Shape the city left behind. Building controls update the layout at the current year.</p>
-          <Range label="Building density" value={config.buildingDensity} min={0.35} max={2} step={0.05} format={(v) => `${v.toFixed(2)}×`} onChange={(v) => update('buildingDensity', v)} hint="Adds lots where streets, railways, water, and spacing allow" />
-          <label className="after-select-label">Building layout<select value={config.buildingLayout} onChange={(event) => update('buildingLayout', event.target.value)}><option value="courtyard">Open courtyards</option><option value="streets">Street rows</option><option value="clustered">Irregular clusters</option></select></label>
-          <p className="after-overlay-note">{LAYOUT_COPY[config.buildingLayout]}</p>
-          <Range label="Building height" value={config.buildingHeight} min={0.6} max={1.5} step={0.1} format={(v) => `${v.toFixed(1)}×`} onChange={(v) => update('buildingHeight', v)} hint="Changes floor count and height; taller buildings create more shade" />
-          <label className="after-select-label">Building material<select value={config.buildingMaterial} onChange={(event) => update('buildingMaterial', event.target.value)}><option value="mixed">Mixed materials</option><option value="brick">Brick & plaster</option><option value="concrete">Reinforced concrete</option></select></label>
-          <Range label="Weathering rate" value={config.weatheringRate} min={0.4} max={1.8} step={0.1} format={(v) => `${v.toFixed(1)}×`} onChange={(v) => update('weatheringRate', v)} hint="Dampness, exposure, and roots accelerate wear; concrete resists longer" />
-          <div className="after-aging-checkpoints"><span>Aging checkpoints</span><div role="group" aria-label="Preview building age">{[0, 20, 40, 60, 80].map((age) => <button key={age} type="button" aria-label={`Preview Year ${age}`} aria-pressed={year === age} onClick={() => { setYear(age); setPlaying(false) }}>{age}<small>yr</small></button>)}</div></div>
-          <div className="after-feedback after-building-status" aria-live="polite"><span>BUILDING STATUS</span><small>{stream.pending ? 'Updating selected year…' : `Simulated state · Year ${statusYear} · Current district`}</small><dl><div><dt>Buildings</dt><dd>{stat('buildings')}</dd></div><div><dt>Structure condition</dt><dd>{stat('integrity')}%</dd></div><div><dt>Fallen wall sections</dt><dd>{stat('fallen')}</dd></div></dl><p>{stream.pending ? 'Recalculating structures and habitat…' : structureStage(meanDamage)}</p></div>
-          <p className="after-overlay-note">Stains → cracks → loose masonry → partial wall and roof loss. Openings admit light and seeds; fragments settle below the walls. These are model estimates for the selected year.</p>
-          <button type="button" className="after-text-button" onClick={() => { setConfig((current) => ({ ...current, ...BUILDING_DEFAULTS })); setChanged('buildings') }}>Reset Building Controls ↺</button>
-        </Group>
-        <Group number="04" title="Vegetation & Growth"><label className="after-select-label">Plant Community<select value={config.community} onChange={(event) => update('community', event.target.value)}><option value="balanced">Mixed Succession</option><option value="climbers">Climbers & roof gardens</option><option value="meadow">Pioneers & wildflowers</option><option value="woodland">Shrubs & young woodland</option></select></label><p className="after-overlay-note">{COMMUNITY_COPY[config.community]}</p><Range label="Seed availability" value={config.density} min={0.2} max={1.5} onChange={(v) => update('density', v)} /><Range label="Growth rate" value={config.growthRate} min={0.2} max={2} format={(v) => `${v.toFixed(1)}×`} onChange={(v) => update('growthRate', v)} /><Range label="Seed dispersal" value={config.dispersal} min={0.1} max={1.8} onChange={(v) => update('dispersal', v)} hint="Roads slow spread; connected patches carry it further" /><div className="after-feedback" aria-live="polite"><span>LIVE ECOSYSTEM STATUS</span><small>{stream.pending ? 'Updating selected year' : `Simulated state · Year ${statusYear}`}{changed && LABELS[changed] ? ` · ${LABELS[changed]} updated` : ''}</small><p>{feedback}</p></div></Group>
-        <Group number="05" title="Explore the Ecosystem"><div className="after-segmented after-overlay-options" role="group" aria-label="Ecological analysis">{Object.entries(OVERLAYS).map(([value, [label]]) => <button type="button" key={value} className={overlay === value ? 'active' : ''} aria-pressed={overlay === value} onClick={() => setOverlay(value)}>{label}</button>)}</div><p className="after-overlay-note">{OVERLAYS[overlay][1]}</p>{overlay === 'impact' && <div className="after-impact-key"><span><i style={{ background: '#b78479' }} /> Barriers</span><span><i style={{ background: '#7eaaa0' }} /> Water</span><span><i style={{ background: '#a6b876' }} /> Corridors</span></div>}<div className="after-fact"><span>DISTRICT MOISTURE</span><strong>{stat('moisture')}%</strong></div></Group>
-        <Group number="06" title="World Generation"><div className="after-seed-row"><label htmlFor="after-seed">World seed</label><div><input id="after-seed" value={seedDraft} onChange={(event) => setSeedDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') regenerate() }} /><button type="button" onClick={() => regenerate()} aria-label="Generate world from seed">↻</button></div></div><button type="button" className="after-new-world" onClick={() => regenerate(true)}>Generate New World <span>↗</span></button></Group>
-        <button type="button" className="after-reset" onClick={reset}>Reset Environmental Conditions <span>↺</span></button>
+      <aside className="builder-panel" aria-label="Building and planting tools">
+        <div className="builder-panel-heading"><p className="after-eyebrow">YOUR GARDEN KIT</p><h2>{mode === 'build' ? 'Small pieces. Your place.' : mode === 'plant' ? 'It starts with a seed.' : mode === 'explore' ? 'A world of possibilities.' : 'Make it your own.'}</h2></div>
+        {(mode === 'build' || mode === 'plant') && <><div className="builder-catalog">{Object.entries(mode === 'build' ? BUILD_KIT : SEEDS).map(([value, item]) => <button key={value} type="button" aria-pressed={(mode === 'build' ? buildKind : seedKind) === value} onClick={() => { mode === 'build' ? setBuildKind(value) : setSeedKind(value); setHover(null) }}><KitIcon kind={value} /><strong>{item.name}</strong><small>{mode === 'build' ? `${item.width} × ${item.depth} m` : value === 'ivy' ? 'Climbs structures' : value === 'birch' ? 'Grows into a tree' : 'Spreads from its roots'}</small></button>)}</div><p className="builder-kit-hint">{(mode === 'build' ? BUILD_KIT[buildKind] : SEEDS[seedKind]).hint}</p>{mode === 'build' && <button className="builder-secondary" type="button" onClick={() => setTurned((v) => !v)}>↻ Rotate footprint <kbd>R</kbd><span>{turned ? '90°' : '0°'}</span></button>}</>}
+        {(mode === 'select' || mode === 'move') && (selectedBuilding ? <div className="builder-inspector"><div className="builder-selection-title"><KitIcon kind={selectedBuilding.kind} /><div><span>YOUR STRUCTURE</span><h3>{BUILD_KIT[selectedBuilding.kind].name}</h3><p>Placed in year {selectedBuilding.createdAt}</p></div></div>{selectedBuilding.type === 'apartment' && <><div className="builder-storeys"><span>Storeys</span><div><button type="button" aria-label="Remove a storey" disabled={selectedBuilding.floors <= 1 || stream.pending} onClick={() => updateBuilding({ floors: selectedBuilding.floors - 1 })}>−</button><strong>{selectedBuilding.floors}</strong><button type="button" aria-label="Add a storey" disabled={selectedBuilding.floors >= 4 || stream.pending} onClick={() => updateBuilding({ floors: selectedBuilding.floors + 1 })}>+</button></div></div><label className="after-select-label">Roof shape<select value={selectedBuilding.roofForm} onChange={(e) => updateBuilding({ roofForm: e.target.value })}><option value="flat">Flat terrace</option><option value="gable">Pitched roof</option><option value="sawtooth">Sawtooth roof</option></select></label></>}{selectedBuilding.type !== 'greenhouse' && <label className="after-select-label">Material<select value={selectedBuilding.material} onChange={(e) => updateBuilding({ material: e.target.value })}><option value="brick">Warm brick & plaster</option><option value="concrete">Pale concrete</option></select></label>}<p className="builder-kit-hint">{selectedBuilding.type === 'apartment' ? 'Each storey adds windows and casts more shade. Ferns enjoy the sheltered ground; ivy can climb the walls.' : BUILD_KIT[selectedBuilding.kind].hint}</p><div className="builder-edit-actions"><button className="builder-secondary" type="button" onClick={() => { setMode(mode === 'move' ? 'select' : 'move'); setHover(null) }}>{mode === 'move' ? 'Cancel move' : 'Move structure'}</button><button className="builder-remove" type="button" onClick={removeSelected}>Remove</button></div><button className="builder-primary" type="button" onClick={() => { chooseMode('plant'); setSeedKind('ivy') }}>Plant something here ↗</button></div> : selectedPlant ? <div className="builder-inspector"><div className="builder-selection-title"><KitIcon kind={selectedPlant.kind} /><div><span>YOUR SEED</span><h3>{SEEDS[selectedPlant.kind].name}</h3><p>Planted in year {selectedPlant.plantedAt}</p></div></div><p className="builder-kit-hint">{SEEDS[selectedPlant.kind].hint}</p><button className="builder-remove" type="button" onClick={removeSelected}>Remove seed and its growth</button></div> : <div className="builder-empty-selection"><span>↖</span><p>Choose a building to add storeys, change its roof, or move it. Choose a seed marker to inspect your planting.</p><button className="builder-primary" type="button" onClick={() => chooseMode('build')}>Add a building piece</button></div>)}
+        {mode === 'explore' && <div className="builder-explore-copy"><p>Drag across the streets to find another open parcel. Roads, rails, and water continue between blocks.</p><p>Your buildings and plants stay where you put them, ready for your return.</p><button className="builder-primary" type="button" onClick={() => chooseMode('build')}>Build on this parcel</button></div>}
+        <div className="builder-feedback" role="status">{notice}</div>
+        <section className="builder-time"><div className="builder-time-heading"><div><p className="after-eyebrow">LET IT GROW</p><h3>Year {world.year}<span>of your garden</span></h3></div><span className="builder-sun" aria-hidden="true">☼</span></div><p>Seeds spread from where you plant them. Structures slowly weather with time.</p><div className="after-play-row"><button className="after-play" type="button" aria-pressed={playing} onClick={() => { setPlaying((v) => !v); setMode('select'); setHover(null) }}>{playing ? 'Ⅱ Pause growth' : '▷ Watch it grow'}</button><button className="after-step" type="button" disabled={world.year >= 9999} onClick={() => { setPlaying(false); dispatch({ type: 'year', amount: 5 }); setNotice('Five years pass. Your plants respond to the places you chose.') }}>+ 5 years</button></div><div className="builder-metrics"><div><strong>{parcel.buildings.length}</strong><span>structures placed</span></div><div><strong>{parcel.plants.length}</strong><span>seeds planted</span></div><div><strong>{stats?.coverage ?? 0}%</strong><span>ground reclaimed</span></div></div></section>
+        <details className="builder-conditions"><summary>Light & habitat</summary><DayNightControls clock={dayClock} /><label className="after-select-label">See the habitat<select value={overlay} onChange={(e) => setOverlay(e.target.value)}><option value="natural">Natural colors</option><option value="light">Sun & shade</option><option value="moisture">Ground moisture</option></select></label><p>Buildings create shade. Canals keep nearby ground damp. These conditions influence how your plants grow.</p></details>
       </aside>
     </div>
-    <footer className="after-footer"><span>AFTER US / NATURE RECLAIMS THE WORLD</span></footer>
+    <footer className="after-footer"><span>AFTER US / BUILT BY YOU, RECLAIMED BY NATURE</span><span>FIRST PLAYABLE STUDY · LOCAL SAVE</span></footer>
   </main>
 }

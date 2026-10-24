@@ -9,6 +9,7 @@ export const MATERIALS = Object.freeze({
 export function buildingSignature(config) {
   const signature = [config.seed, ...['buildingDensity', 'buildingLayout', 'buildingHeight', 'buildingMaterial'].map((key) => config[key] ?? BUILDING_DEFAULTS[key])]
   if (config.buildingLots) signature.push(config.buildingLots)
+  if (config.playerBuilt) signature.push('player-built-v1', config.districtEdits)
   return JSON.stringify(signature)
 }
 
@@ -20,13 +21,14 @@ export function generateBuildings(context, options = {}) {
   // Optional priority parcels use the same placement checks and building grammar.
   // Defining them before the habitat is generated keeps shade, roots, and decay
   // attached to the actual footprint instead of stretching rendered buildings.
-  const lots = config.buildingLots ?? (config.buildingLayout === 'streets'
+  const authored = Array.isArray(config.authoredBuildings)
+  const lots = config.authoredBuildings ?? config.buildingLots ?? (config.buildingLayout === 'streets'
     ? [[-5.8, -5.8, 4.8, 5], [0, -5.8, 4.6, 5], [-5.8, 8, 4.6, 3], [0, 8, 4.4, 3]]
     : config.buildingLayout === 'clustered'
       ? [[-4.7, -4.3, 5.1, 4.5], [0.4, -1.3, 3.7, 3.8], [-5.5, 8, 4.3, 3], [1, -7.2, 3.4, 3.2]]
       : [[-3.8, -3.5, 7.7, 6.2], [3.1, -6.8, 3, 3.8], [-4.9, 8, 5.1, 3], [2.1, 0.7, 3.2, 2.8]])
-  const target = Math.max(1, Math.round(config.buildingDensity * 3))
-  for (let attempt = 0; attempt < 100 && buildings.length < target; attempt += 1) {
+  const target = authored ? lots.length : Math.max(1, Math.round(config.buildingDensity * 3))
+  for (let attempt = 0; attempt < (authored ? lots.length : 100) && buildings.length < target; attempt += 1) {
     const parcel = Array.isArray(lots[attempt]) ? undefined : lots[attempt]
     const lot = parcel ? [parcel.x, parcel.z, parcel.width, parcel.depth] : lots[attempt]
     let [x, z, width, depth] = lot || [(random() - 0.5) * 15.5, (random() - 0.5) * 16.6, 2.5 + random() * 1.4, 2.4 + random() * 1.5]
@@ -36,7 +38,7 @@ export function generateBuildings(context, options = {}) {
     }
     if (!lot && config.buildingLayout === 'streets') { x = Math.round(x / 4.8) * 4.8; z = z < 2 ? -5.9 : 8 }
     if (!lot && config.buildingLayout === 'clustered') { x = -2.5 + (random() - 0.5) * 11; z = (random() - 0.5) * 15.5 }
-    const gap = config.buildingLayout === 'clustered' ? 0.55 : 0.9
+    const gap = authored || config.buildingLayout === 'clustered' ? 0.55 : 0.9
     if (Math.abs(x) + width / 2 > 9.15 || Math.abs(z) + depth / 2 > 9.55) continue
     if ([-depth / 2, 0, depth / 2].some((dz) => Math.abs(x - canal(z + dz)) < width / 2 + 1.5)) continue
     if ([-width / 2, 0, width / 2].some((dx) => Math.abs(z - rail(x + dx)) < depth / 2 + 1.35)) continue
@@ -44,18 +46,18 @@ export function generateBuildings(context, options = {}) {
     const id = buildings.length
     const type = parcel?.type ?? (id === 0 ? kind === 'glassworks' ? 'greenhouse' : kind === 'ruins' ? 'ruin' : kind === 'railworks' ? 'utility' : 'apartment'
       : id === 2 ? hero ? 'greenhouse' : kind === 'housing' ? 'apartment' : 'ruin' : id % 3 === 0 ? 'apartment' : 'utility')
-    const buildingSeed = seedNumber(`${tileSeed}/building/${id}`)
+    const buildingSeed = seedNumber(`${tileSeed}/building/${authored ? parcel.id : id}`)
     const variant = parcel?.variant ?? (type === 'greenhouse' ? (hero || buildingSeed % 2 ? 'conservatory' : 'glasshouse')
       : type === 'ruin' ? (buildingSeed % 2 ? 'pergola' : 'broken-hall')
         : type === 'utility' ? (kind === 'railworks' || buildingSeed % 3 === 0 ? 'workshop' : 'cottage')
           : hero ? 'terrace' : kind === 'courtyard' ? 'arcade' : buildingSeed % 2 ? 'townhouse' : 'terrace')
-    const roofForm = variant === 'workshop' ? 'sawtooth' : ['cottage', 'townhouse'].includes(variant) ? 'gable' : 'flat'
+    const roofForm = parcel?.roofForm ?? (variant === 'workshop' ? 'sawtooth' : ['cottage', 'townhouse'].includes(variant) ? 'gable' : 'flat')
     const baseFloors = hero && id === 0 ? 3 : variant === 'arcade' ? 2 : 1 + buildingSeed % 3
     const floors = type === 'apartment' ? Math.max(1, Math.round(parcel?.floors ?? baseFloors * config.buildingHeight)) : 1
     const height = type === 'apartment' ? floors * 1.95 : parcel?.height ?? (type === 'greenhouse' ? 3 : type === 'ruin' ? 2.8 : 2.7) * config.buildingHeight
-    const material = type === 'greenhouse' ? 'steel' : config.buildingMaterial === 'mixed' ? (id % 2 ? 'concrete' : 'brick') : config.buildingMaterial
+    const material = type === 'greenhouse' ? 'steel' : parcel?.material ?? (config.buildingMaterial === 'mixed' ? (id % 2 ? 'concrete' : 'brick') : config.buildingMaterial)
     const base = Math.max(...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => ground(x + sx * width / 2, z + sz * depth / 2))), ground(x, z), 0.35) + 0.04
-    const b = { id, type, variant, roofForm, roofRise: Math.min(width * 0.25, 1.45) * config.buildingHeight, x, z, width, depth, height, floors, base, material, weather: random(), seed: buildingSeed,
+    const b = { id, ...(authored ? { authoredId: parcel.id, createdAt: parcel.createdAt } : {}), type, variant, roofForm, roofRise: Math.min(width * 0.25, 1.45) * config.buildingHeight, x, z, width, depth, height, floors, base, material, weather: random(), seed: buildingSeed,
       wallColor: (material === 'brick' ? ['#c3a18b', '#bba98f', '#c0a69a', '#b4ac96'] : ['#b6b7a7', '#aeb6ad', '#bdbcae'])[buildingSeed % (material === 'brick' ? 4 : 3)] }
     b.panels = wallPanels(b); b.roofTiles = roofTiles(b); b.fractures = fractureFields(b)
     buildings.push(b)
@@ -157,6 +159,7 @@ export function pruneSlabIslands(b, loss) {
 }
 
 export function buildingDamage(b, model, config, year) {
+  year = Math.max(0, year - (b.createdAt ?? 0))
   const cell = clamp(Math.round(b.z + 12), 0, 24) * 25 + clamp(Math.round(b.x + 12), 0, 24)
   const damp = clamp(model.moisture[cell] * 0.55 + config.humidity * 0.65)
   const flood = Math.max(0, config.waterLevel - 0.55) * model.moisture[cell]

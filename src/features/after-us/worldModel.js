@@ -1,6 +1,7 @@
 import { clamp, randomFactory, seedNumber } from './worldMath.js'
 import { BUILDING_DEFAULTS, buildingSignature, buildingState, generateBuildings, roofIndexAt, roofSurfaceAt, structureSupport, wallIndexAt } from './buildingModel.js'
 import { plantSpecies, plantVigor } from './plantHabitat.js'
+import { plantedCandidates, plantedGroundCover, seedMaturity } from './plantedEcology.js'
 export { clamp, randomFactory, seedNumber } from './worldMath.js'
 
 export const CHUNK_SIZE = 24
@@ -31,7 +32,8 @@ export function createDistrict(seedValue, cx = 0, cz = 0, config = DEFAULT_WORLD
   const ox = cx * CHUNK_SIZE, oz = cz * CHUNK_SIZE
   const hero = cx === 0 && cz === 0
   const kind = hero ? 'courtyard' : ['housing', 'housing', 'courtyard', 'glassworks', 'railworks', 'ruins'][tileSeed % 6]
-  const buildings = generateBuildings({ tileSeed, kind, hero, ground: (x, z) => terrainAt(ox + x, oz + z, seed), canal: (z) => canalX(ox, oz + z, seed) - ox, rail: (x) => railZ(ox + x, oz) - oz }, config)
+  const edits = config.districtEdits?.[districtKey(cx, cz)]
+  const buildings = generateBuildings({ tileSeed, kind, hero, ground: (x, z) => terrainAt(ox + x, oz + z, seed), canal: (z) => canalX(ox, oz + z, seed) - ox, rail: (x) => railZ(ox + x, oz) - oz }, config.playerBuilt ? { ...config, authoredBuildings: edits?.buildings ?? [] } : config)
   const cells = GRID * GRID, heights = new Float32Array(cells), light = new Float32Array(cells), moisture = new Float32Array(cells), soil = new Float32Array(cells), barrier = new Float32Array(cells), initialCover = new Float32Array(cells), buildingCell = new Int16Array(cells).fill(-1)
   for (let row = 0; row < GRID; row += 1) for (let col = 0; col < GRID; col += 1) {
     const i = row * GRID + col, x = col - 12, z = row - 12, wx = ox + x, wz = oz + z
@@ -50,7 +52,8 @@ export function createDistrict(seedValue, cx = 0, cz = 0, config = DEFAULT_WORLD
     const patch = noise(wx * 0.23 + 8, wz * 0.23 - 4, seed ^ 84219)
     initialCover[i] = h < -0.3 ? 0 : clamp((patch - 0.41) * 0.95) * soil[i] * (1 - barrier[i] * 0.85)
   }
-  const model = { key: districtKey(cx, cz), generation: buildingSignature({ ...config, seed: seedValue }), cx, cz, ox, oz, seed, tileSeed, name: hero ? 'The Old Exchange' : NAMES[tileSeed % NAMES.length], kind, buildings, heights, light, moisture, soil, barrier, initialCover, buildingCell }
+  if (config.playerBuilt) initialCover.fill(0)
+  const model = { key: districtKey(cx, cz), generation: buildingSignature({ ...config, seed: seedValue }), cx, cz, ox, oz, seed, tileSeed, name: hero ? 'The Old Exchange' : NAMES[tileSeed % NAMES.length], kind, buildings, heights, light, moisture, soil, barrier, initialCover, buildingCell, ...(config.playerBuilt ? { authored: true, plantedSeeds: edits?.plants ?? [] } : {}) }
   const candidates = { pioneers: [], shrubs: [], trees: [], vines: [], roof: [], flowers: [] }
   for (const [type, amount] of [['pioneers', 420], ['shrubs', 65], ['trees', 22], ['flowers', 75]]) {
     let origin = null
@@ -141,6 +144,7 @@ export function createDistrict(seedValue, cx = 0, cz = 0, config = DEFAULT_WORLD
     if (type === 'flowers') plant.flowerColor = patch > 0.62 ? '#b9a0b6' : patch < 0.4 ? '#cf9e9d' : '#d7cfab'
     if (type === 'vines') plant.facing ??= plant.surface === 'rail' ? (plant.z > railZ(ox + plant.x, oz) - oz ? 0 : Math.PI) : plant.side === 1 ? Math.PI / 2 : plant.side === 2 ? -Math.PI / 2 : 0
   }
+  if (model.authored) return { ...model, ...plantedCandidates(model, candidates, stems, (x, z) => terrainAt(ox + x, oz + z, seed)) }
   return { ...model, candidates, stems }
 }
 
@@ -165,6 +169,16 @@ export function structuralEnvironment(model, structures) {
 }
 
 export function advanceWorld(model, config, years) {
+  if (model.authored) {
+    const structures = model.buildings.map((b) => buildingState(b, model, config, years))
+    const environment = structuralEnvironment(model, structures)
+    const climbers = model.buildings.map((b) => {
+      const source = model.plantedSeeds.find((p) => p.kind === 'ivy' && p.buildingId === b.authoredId)
+      return { id: b.id, value: source ? seedMaturity(source, years, config) * (0.65 + config.humidity * 0.35) : 0 }
+    })
+    const snapshot = { cover: plantedGroundCover(model, config, years), climbers, structures, environment, year: years }
+    return { ...snapshot, stats: worldStats(model, snapshot, config) }
+  }
   let cover = new Float32Array(model.initialCover)
   const capacity = new Float32Array(cover.length), rate = new Float32Array(cover.length)
   const weights = COMMUNITY[config.community] || COMMUNITY.balanced
@@ -198,6 +212,12 @@ export function advanceWorld(model, config, years) {
 }
 
 export function plantGrowth(plant, type, snapshot, config) {
+  if (plant.authored && type !== 'vines') {
+    if (!structureSupport(plant, snapshot) || snapshot.year < plant.plantedAt) return 0
+    const maturity = seedMaturity(plant, snapshot.year, config)
+    const spread = type === 'trees' ? 1 : clamp((0.65 + maturity * 3.7 - plant.distance) * 1.4)
+    return maturity * spread * plantVigor(plant, config)
+  }
   if (plant.rank > clamp(config.density / 1.5)) return 0
   if (!structureSupport(plant, snapshot)) return 0
   if (plant.interior >= 0 && (snapshot.structures?.[plant.interior]?.opening || 0) < 0.08) return 0

@@ -26,11 +26,11 @@ export function Overview() {
           <p className="eyebrow">PROCEDURAL WORLD / PROJECT OVERVIEW</p>
           <h1><span>A world reclaimed</span><span>by nature.</span></h1>
           <p className="overview-lead">
-            Explore After Us, a procedural world where nature reclaims abandoned streets,
-            rooftops, and railways. Adjust the conditions and watch the ecosystem evolve.
+            Build your own corner of After Us. Place rooms, shape rooftops, and plant
+            the first seeds. Watch nature find its way through the places you create.
           </p>
           <div className="overview-actions">
-            <a className="primary-link" href="#world">Explore the world <span aria-hidden="true">↗</span></a>
+            <a className="primary-link" href="#world">Build your world <span aria-hidden="true">↗</span></a>
             <a className="text-link" href="#experiments">Explore the experiments <span aria-hidden="true">↗</span></a>
           </div>
         </div>
